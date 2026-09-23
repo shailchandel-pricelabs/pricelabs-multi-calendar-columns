@@ -290,6 +290,24 @@
   /* reordering: no drag ghost, no live shuffle — the dragged header is
      highlighted and a blue rule marks where it will land */
   thead th.drag-ok { cursor: grab; }
+  /* discoverability: a grip appears in the header's left padding on hover.
+     Centred columns only have 6px there, so their header gets room for it. */
+  thead th.drag-ok.c { padding-left: 14px; }
+  .th-grip {
+    position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+    font-size: 10px; line-height: 0; color: var(--ink-2); visibility: hidden; pointer-events: none;
+  }
+  thead th.drag-ok:hover .th-grip, thead th.is-dragging .th-grip { visibility: visible; }
+  thead th.is-dragging .th-grip { color: var(--blue); }
+  body.col-resizing thead th .th-grip { visibility: hidden; }
+
+  /* resizing: MUI-style separator on each meta header's right edge. The hit area
+     is 6px wide; a 2px blue rule shows on hover and while dragging. */
+  .th-resize { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; z-index: 2; }
+  .th-resize::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 2px; background: transparent; }
+  .th-resize:hover::after, .th-resize.on::after { background: var(--blue); }
+  body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }
+  body.col-resizing thead th .th-menu { width: 0; visibility: hidden; }
   body.col-dragging, body.col-dragging * { cursor: grabbing !important; user-select: none; }
   thead th.is-dragging { background: #F3F8FE; box-shadow: inset 0 0 0 1px var(--blue); color: var(--blue); }
   thead th.drop-l::before, thead th.drop-r::after {
@@ -748,18 +766,22 @@
 // ---------------------------------------------------------------------------
 const META = [
   { key: '_sel',   label: '',               w: 40,  hideable: false },
-  { key: 'name',   label: 'Listings',       w: 201, hideable: false, sort: true },
-  { key: 'alerts', label: 'Action Center',  w: 275, sort: true },
-  { key: 'sync',   label: 'Sync Price',     w: 120 },
-  { key: 'save',   label: 'Save & Refresh', w: 110, center: true },
-  { key: 'base',   label: 'Base',           w: 128, sort: true, center: true },
+  { key: 'name',   label: 'Listings',       w: 201, minW: 160, hideable: false, sort: true },
+  { key: 'alerts', label: 'Action Center',  w: 275, minW: 220, sort: true },
+  { key: 'sync',   label: 'Sync Price',     w: 120, minW: 100 },
+  { key: 'save',   label: 'Save & Refresh', w: 110, minW: 110, center: true },
+  { key: 'base',   label: 'Base',           w: 128, minW: 124, sort: true, center: true },
   { key: 'occ7',   label: 'Total Occ (7N)', w: 110, sort: true, center: true },
   { key: 'tags',   label: 'Tags',           w: 150, hidden: true },
   { key: 'city',   label: 'City',           w: 120, hidden: true, sort: true },
   { key: 'beds',   label: 'Bedroom Count',  w: 120, hidden: true, sort: true, center: true },
-  { key: 'minp',   label: 'Minimum Price',  w: 128, hidden: true, sort: true, center: true },
+  { key: 'minp',   label: 'Minimum Price',  w: 128, minW: 124, hidden: true, sort: true, center: true },
 ];
 const byKey = k => META.find(c => c.key === k);
+// resizing floor: never narrower than the cell's own control (Action Center keeps
+// room for its alert chips); 80px otherwise. Double-click a separator to go back to w0.
+const MIN_W = 80;
+META.forEach(c => { c.w0 = c.w; });
 
 // ---------------------------------------------------------------------------
 // Column state, modelled on MUI Data Grid:
@@ -791,7 +813,7 @@ function computePins({ left }) {
   pinPos = {};
   let x = 0;
   left.forEach((c, i) => {
-    pinPos[c.key] = { cls: 'pin-l' + (i === left.length - 1 ? ' pin-edge-l' : ''), style: `left:${x}px` };
+    pinPos[c.key] = { cls: 'pin-l' + (i === left.length - 1 ? ' pin-edge-l' : ''), style: `left:${x}px`, x };
     x += c.w;
   });
   pinnedLeftW = x;
@@ -928,10 +950,10 @@ function metaCell(l, c) {
 function headCell(c) {
   if (c.key === '_sel') return `<th ${cellAttrs(c, true)}><input type="checkbox" class="cb" aria-label="Select all listings"></th>`;
   // sorting lives in the ⋮ menu only — no carets in the header
-  return `<th ${cellAttrs(c, true)} id="mc-col-${c.key}"><div class="th-c">
+  return `<th ${cellAttrs(c, true)} id="mc-col-${c.key}">${isPinned(c.key) ? '' : '<i class="fa-solid fa-grip-dots-vertical th-grip" aria-hidden="true"></i>'}<div class="th-c">
       <span class="th-lbl">${isPinned(c.key) ? '<i class="fa-solid fa-thumbtack th-pin" aria-hidden="true" title="Pinned"></i>' : ''}${esc(c.label)}</span>
       <span class="th-tools"><button class="th-menu" id="mc-colmenu-btn-${c.key}" data-menu="${c.key}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(c.label)} column menu"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></span>
-    </div></th>`;
+    </div><span class="th-resize" id="mc-colresize-${c.key}" data-resize="${c.key}" title="Drag to resize · double-click to reset" aria-hidden="true"></span></th>`;
 }
 
 function render() {
@@ -939,7 +961,7 @@ function render() {
   computePins(lay);
   const before = [...lay.left, ...lay.mid];
 
-  $('#cg').innerHTML = before.map(c => `<col style="width:${c.w}px">`).join('')
+  $('#cg').innerHTML = before.map(c => `<col data-key="${c.key}" style="width:${c.w}px">`).join('')
     + days.map(() => `<col style="width:60px">`).join('');
 
   const total = before.reduce((n, c) => n + c.w, 0) + days.length * 60;
@@ -969,6 +991,17 @@ function render() {
   // keep every visibility control in step with the grid
   document.querySelectorAll('#rc-menu input[data-col]').forEach(cb => { cb.checked = enabled.has(cb.dataset.col); });
   if (typeof renderPanel === 'function') renderPanel();
+  syncScroll();
+}
+
+// Resizing only touches widths: <col>s, table width and pinned offsets — no
+// re-render, so dragging stays smooth however many listings are on the page.
+function applyWidths() {
+  document.querySelectorAll('#cg col[data-key]').forEach(col => { col.style.width = byKey(col.dataset.key).w + 'px'; });
+  const lay = layout();
+  computePins(lay);
+  document.querySelector('table').style.width = [...lay.left, ...lay.mid].reduce((n, c) => n + c.w, 0) + days.length * 60 + 'px';
+  document.querySelectorAll('#table-wrap .pin-l[data-key]').forEach(el => { el.style.left = pinPos[el.dataset.key].x + 'px'; });
   syncScroll();
 }
 
@@ -1148,10 +1181,41 @@ $('#mc-cols-reset').addEventListener('click', () => {
     if (menuKey === btn.dataset.menu) closeColMenu(); else { closeColMenu(); openColMenu(btn.dataset.menu, btn); }
   });
 
+  // ---- resize: drag a header's right-edge separator ----
+  let rz = null;
+  head.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.th-resize');
+    if (!h || e.button !== 0) return;
+    e.preventDefault();
+    const c = byKey(h.dataset.resize);
+    rz = { c, h, x0: e.clientX, w0: c.w };
+    h.classList.add('on');
+    document.body.classList.add('col-resizing');
+    closeColMenu(); closePanel();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!rz) return;
+    rz.c.w = Math.max(rz.c.minW || MIN_W, Math.round(rz.w0 + e.clientX - rz.x0));
+    applyWidths();
+  });
+  document.addEventListener('pointerup', () => {
+    if (!rz) return;
+    rz.h.classList.remove('on');
+    document.body.classList.remove('col-resizing');
+    rz = null;
+  });
+  head.addEventListener('dblclick', e => {
+    const h = e.target.closest('.th-resize');
+    if (!h) return;
+    const c = byKey(h.dataset.resize);
+    c.w = c.w0;
+    applyWidths();
+  });
+
   head.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     const th = e.target.closest('th[data-key]');
-    if (!th || th.dataset.key === '_sel' || e.target.closest('.th-menu, input')) return;
+    if (!th || th.dataset.key === '_sel' || e.target.closest('.th-menu, .th-resize, input')) return;
     e.preventDefault();   // no text selection while dragging
     drag = { key: th.dataset.key, th, x0: e.clientX, active: false, target: null };
   });
