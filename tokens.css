@@ -1,0 +1,160 @@
+/* PriceLabs Design Tokens v2
+   Source: PriceLabs Design System v2 (Figma) — 02 Foundations
+   Mirrors production Chakra theme (/agents/design-tokens/foundations/*)
+   Generated 2026-08-03. These are PRODUCTION values, not the aspirational
+   design-system.md v1.0 values. */
+
+:root {
+  /* ---------- Brand: primaryRed (600 = brand) ---------- */
+  --pl-primary-red-50: #FEF1F2;
+  --pl-primary-red-100: #FCDCDD;
+  --pl-primary-red-200: #F69396;
+  --pl-primary-red-600: #F37579; /* brand */
+  --pl-primary-red-700: #D66B6F;
+  --pl-primary-red-800: #C36568;
+  --pl-primary-red-900: #A15457;
+
+  /* ---------- Text ---------- */
+  --pl-text-primary: #333333;      /* primaryBlack */
+  --pl-text-secondary: #7A7A7A;    /* secondaryBlack */
+  --pl-text-black: #000000;
+  --pl-text-button-grey: #666666;  /* buttonGrey */
+  --pl-text-disabled: #AEAEAE;     /* disabledGrey */
+  --pl-icon-disabled: #BDBDBD;     /* disabledIcon */
+
+  /* ---------- Surfaces ---------- */
+  --pl-surface-white: #FFFFFF;     /* productWhite */
+  --pl-surface-background: #F4F5F7;/* backgroundGrey — page bg */
+  --pl-surface-neutral: #EFEFEF;   /* neutralGray */
+  --pl-surface-soft: #E6E6E6;      /* softGray */
+
+  /* ---------- Borders & dividers ---------- */
+  --pl-border-default: #E0E0E0;    /* borderColor */
+  --pl-border-table: #EDF2F7;      /* tableBorderColor */
+  --pl-border-divider: #CBC5C5;    /* dividerGray */
+  --pl-border-header-sorting: #B2B2B2;
+  --pl-border-green: #D6F3E8;
+  --pl-border-red: #FCDCDD;
+  --pl-border-blue: #98B7C7;
+
+  /* ---------- Status ---------- */
+  --pl-status-blue: #1976F3;
+  --pl-status-blue-secondary: #1D69CD;
+  --pl-status-blue-surface: #E8F1FD;
+  --pl-status-info-icon: #76A9FB;
+  --pl-status-error: #E63E3D;
+  --pl-status-red-strong: #D62828;
+  --pl-status-amber: #E29F08;
+  --pl-status-amber-warning: #FFC33A;
+  --pl-status-yellow: #FFD159;
+  --pl-status-green: #31C48D;
+  --pl-status-green-light: #4ADCA6;
+  --pl-status-green-dark: #39AA80;
+
+  /* ---------- Highlight backgrounds ---------- */
+  --pl-highlight-blue: #F3F8FE;
+  --pl-highlight-red: #FEF1F2;
+  --pl-highlight-yellow: #FEFAF3;
+  --pl-highlight-green: #F5FBF9;
+
+  /* ---------- Chart palette ---------- */
+  --pl-chart-1: #2CAFFE; /* vividSkyBlue */
+  --pl-chart-2: #FE6A35; /* vividOrange */
+  --pl-chart-3: #00E272; /* emeraldGreen */
+  --pl-chart-4: #D568FB; /* orchidPurple */
+  --pl-chart-5: #544FC5; /* indigoBlue */
+
+  /* ---------- Listing Optimizer grades ---------- */
+  --pl-lq-excellent-bg: #F5FBF9;
+  --pl-lq-excellent-text: #31C48D;
+  --pl-lq-good-bg: #F3F8FE;
+  --pl-lq-good-text: #1976F3;
+  --pl-lq-needs-review-bg: #FEFAF3;
+  --pl-lq-needs-review-text: #E29F08;
+  --pl-lq-low-bg: #FEF1F2;
+  --pl-lq-low-text: #E63E3D;
+
+  /* ---------- Typography (desktop) ---------- */
+  --pl-font-sans: "IBM Plex Sans", sans-serif;
+  --pl-text-3xl: 600 48px/1.2 var(--pl-font-sans);
+  --pl-text-2xl: 600 32px/1.25 var(--pl-font-sans);
+  --pl-text-xl: 600 24px/1.33 var(--pl-font-sans);
+  --pl-text-xl-regular: 400 24px/1.33 var(--pl-font-sans);
+  --pl-text-lg: 600 18px/1.33 var(--pl-font-sans);
+  --pl-text-lg-regular: 400 18px/1.33 var(--pl-font-sans);
+  --pl-text-md-bold: 700 14px/1.43 var(--pl-font-sans);
+  --pl-text-md: 600 14px/1.43 var(--pl-font-sans); /* default body */
+  --pl-text-md-regular: 400 14px/1.43 var(--pl-font-sans);
+  --pl-text-sm: 600 12px/1.33 var(--pl-font-sans);
+  --pl-text-sm-regular: 400 12px/1.33 var(--pl-font-sans);
+  --pl-text-xs: 600 11px/1.45 var(--pl-font-sans);
+  --pl-text-xs-regular: 400 11px/1.45 var(--pl-font-sans);
+
+  /* ---------- Typography (mobile) ---------- */
+  --pl-mobile-xl: 600 24px/1.33 var(--pl-font-sans);
+  --pl-mobile-lg: 600 20px/1.4 var(--pl-font-sans);
+  --pl-mobile-md: 600 16px/1.5 var(--pl-font-sans);
+  --pl-mobile-md-regular: 400 16px/1.5 var(--pl-font-sans);
+  --pl-mobile-sm: 600 14px/1.43 var(--pl-font-sans);
+  --pl-mobile-sm-regular: 400 14px/1.43 var(--pl-font-sans);
+  --pl-mobile-xs-regular: 400 12px/1.33 var(--pl-font-sans);
+
+  /* ---------- Spacing (Chakra scale, 1 unit = 4px) ---------- */
+  --pl-space-px: 1px;
+  --pl-space-0-5: 2px;
+  --pl-space-1: 4px;
+  --pl-space-1-5: 6px;
+  --pl-space-2: 8px;
+  --pl-space-2-5: 10px;
+  --pl-space-3: 12px;
+  --pl-space-3-5: 14px;
+  --pl-space-4: 16px;
+  --pl-space-5: 20px;
+  --pl-space-6: 24px;
+  --pl-space-7: 28px;
+  --pl-space-8: 32px;
+  --pl-space-9: 36px;
+  --pl-space-10: 40px;
+  --pl-space-11: 44px;
+  --pl-space-12: 48px;
+  --pl-space-14: 56px;
+  --pl-space-16: 64px;
+  --pl-space-20: 80px;
+  --pl-space-24: 96px;
+  --pl-space-32: 128px;
+  --pl-space-40: 160px;
+  --pl-space-48: 192px;
+  --pl-space-56: 224px;
+  --pl-space-64: 256px;
+  --pl-space-80: 320px;
+  --pl-space-96: 384px;
+
+  /* ---------- Radius ---------- */
+  --pl-radius-none: 0px;
+  --pl-radius-sm: 2px;
+  --pl-radius-base: 4px;        /* button default */
+  --pl-radius-md: 5px;
+  --pl-radius-lg: 10px;
+  --pl-radius-xl: 12px;
+  --pl-radius-card: 8px;        /* cardRadius */
+  --pl-radius-badge: 15px;
+  --pl-radius-date-range-picker: 3px;
+  --pl-radius-dso-band: 25px;
+  --pl-radius-mobile-button: 25px;
+  --pl-radius-mobile-outline: 36px;
+  --pl-radius-modal-mobile-top: 20px;
+  --pl-radius-progress-bar: 18.6px;
+  --pl-radius-circle: 40px;
+  --pl-radius-full: 9999px;
+
+  /* ---------- Shadows (Chakra defaults; verify 10 semantic
+       styles — shadow/button, card, modal, popover, menuList,
+       pageHeader, inputActive, singleSelect, tags, floatingBanner —
+       against Figma effect styles before use) ---------- */
+  --pl-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --pl-shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --pl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --pl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --pl-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --pl-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}

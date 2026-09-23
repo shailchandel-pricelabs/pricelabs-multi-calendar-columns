@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<!-- PL-RESOURCE-PROVENANCE
+  resource: multi-calendar
+  version: v2 (updated 2026-09-05)
+  downloaded: 2026-09-23 from the PL Prototype Gallery
+
+  KEEP THIS COMMENT INTACT. It records which version of the resource this
+  file started from, so your changes can be diffed and merged back cleanly.
+
+  Building on this file? The ground rules that keep it mergeable:
+    - stay path-portable: no root-relative src/href ("/...")
+    - no localStorage — bake decisions into seed data
+    - colors/spacing come from the tokens already in this file
+  Built something reusable (an interaction, a missing state)? Send the
+  edited file back to Abhijith with this header still in place.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PriceLabs — Multi Calendar (base page)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://kit.fontawesome.com/46535d3fdd.js" crossorigin="anonymous"></script>
+<style>
+  /* ================================================================
+     Multi Calendar — replica of app.pricelabs.co/multicalendar.
+     Everything marked "live MC" was read off the running product with
+     getComputedStyle at 1512px, not eyeballed.
+
+     This page is markedly MORE COMPACT than the Pricing Dashboard and Manage
+     Listings: toolbar controls are 28px tall with 11px/600 labels (not 32/14),
+     rows are 62px (not 86/89), day columns are 60px, and prices are 11px/400.
+     There is also NO page-title band — the toolbar sits straight under the nav.
+     ================================================================ */
+  :root {
+    --coral: #F37579;
+    --coral-dark: #D66B6F;
+    --logo-red: #FF4646;
+    --nav-border: #444444;
+    --ink: #333333;
+    --ink-2: #7A7A7A;
+    --ink-chakra: #1A202C;
+    --disabled: #AEAEAE;
+    --icon-disabled: #BDBDBD;
+    --bg: #F4F5F7;
+    --white: #FFFFFF;
+    --border: #E0E0E0;
+    --border-table: #EDF2F7;     /* live MC: thead hairline */
+    --meta-rule: #EDF2F7;        /* live MC: vertical rule between the meta columns */
+    --grid: #AEAEAE;             /* live MC: the DARK rule bracketing the weekend */
+    --day-rule: rgba(0,0,0,.1);  /* live MC: the light rule between ordinary days */
+    --row-rule: rgba(0,0,0,.1);  /* live MC: horizontal rule above each cell */
+    --weekend: rgba(122,122,122,.35);  /* live MC: Sat/Sun header wash */
+    --sort: #7A7A7A;
+    --coral-wash: #FEF1F2;
+    --blue: #1976F3;
+    --green: #31C48D;
+    --amber: #E29F08;
+    --error: #E63E3D;
+
+    /* live MC demand scale — note this is NOT a red-to-green ramp:
+       Low and Normal are greens, Good and High are blues. */
+    --dm-low: #DDF7C6;
+    --dm-normal: #BAE4BC;
+    --dm-good: #C6E8FB;
+    --dm-high: #A3CBE1;
+    --dm-unavail: #E0E0E0;
+
+    --mark-event: #9E63EB;       /* live MC: events star */
+    --mark-restrict: #790100;    /* live MC: house-lock */
+
+    --radius: 4px;
+    --radius-card: 10px;
+    --shadow-btn: 0 1px 2px 0 rgba(51,51,51,.1);
+    --shadow-card: 0 2px 4px 0 rgba(0,0,0,.1);
+    --shadow-bar: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px 0 rgba(0,0,0,.06);
+    --shadow-menu: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+    --nav-h: 48px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--ink); font-size: 14px;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .nav, .toolbar { flex-shrink: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------------- Global nav ---------------- */
+  .nav { height: var(--nav-h); background: var(--ink); display: flex; align-items: center; gap: 4px; padding: 0 16px; }
+  .nav-logo { display: flex; align-items: center; padding-right: 20px; flex-shrink: 0; }
+  .nav-logo svg { display: block; width: 92px; height: auto; }
+  .nav-items { display: flex; align-items: center; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px;
+    background: transparent; border: none; color: #fff;
+    font-size: 14px; font-weight: 400; border-radius: 8px; white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.08); }
+  .nav-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .nav-item .svg-inline--fa { font-size: 14px; color: var(--coral); }
+  .nav-item .nav-caret { font-size: 10px; color: #fff; }
+  .nav-spacer { flex: 1; }
+  .nav-right { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .nav-pill {
+    display: flex; align-items: center; gap: 7px; flex-shrink: 0; height: 30px; padding: 0 13px;
+    background: transparent; border: 1px solid var(--nav-border); color: #fff;
+    font-size: 14px; font-weight: 400; border-radius: 6px; white-space: nowrap;
+  }
+  .nav-pill:hover { background: rgba(255,255,255,.08); }
+  .nav-pill .svg-inline--fa { font-size: 13px; }
+  .nav-pill .spark { display: block; width: 18px; height: 18px; fill: var(--coral); flex-shrink: 0; }
+  .nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--coral); color: #fff; font-size: 14px; font-weight: 600; display: grid; place-items: center; flex-shrink: 0; }
+
+  .nav-item-wrap { position: relative; }
+  .nav-menu {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 300;
+    min-width: 290px; padding: 8px 0;
+    background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: var(--shadow-menu); display: none;
+  }
+  .nav-menu.open { display: block; }
+  .nav-menu a { display: block; padding: 10px 16px; color: var(--ink); }
+  .nav-menu a:hover { background: var(--bg); }
+  .nav-menu a.on, .nav-menu a.on:hover { background: var(--coral-wash); }
+  .nav-menu a.on .t { color: var(--coral); }
+  .nav-menu .t { display: block; font-size: 14px; font-weight: 600; }
+  .nav-menu .d { display: block; font-size: 12px; font-weight: 400; color: var(--ink-2); margin-top: 2px; }
+
+  /* ---------------- Toolbar ----------------
+     live MC: no page-title band, and the toolbar lives INSIDE the white card with
+     the table — the card starts 8px under the nav and wraps everything. */
+  .toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; background: var(--white);
+  }
+  .tb-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .tb-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+
+  /* live MC: 282px wide, 5px radius */
+  .search { position: relative; width: 282px; flex-shrink: 0; }
+  .search .svg-inline--fa { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--icon-disabled); font-size: 11px; z-index: 1; }
+  .search input {
+    width: 100%; height: 28px; padding: 0 12px 0 32px;
+    border: 1px solid var(--border); border-radius: 5px; background: var(--white);
+    font-family: inherit; font-size: 11px; color: var(--ink);
+  }
+  .search input::placeholder { color: var(--disabled); }
+  /* text inputs focus coral per Figma Miscellaneous 144-3034 */
+  .search input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 4px rgba(243,117,121,.25); }
+
+  .cbtn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 28px; padding: 0 10px;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap;
+    box-shadow: var(--shadow-btn);   /* live MC: rgba(51,51,51,.1) 0 1px 2px 0 */
+  }
+  .cbtn:hover { background: var(--coral-wash); border-color: var(--coral); color: var(--coral); }
+  .cbtn:hover .svg-inline--fa { color: var(--coral); }
+  .cbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .cbtn .svg-inline--fa { font-size: 11px; color: var(--ink); }
+  .cbtn.icon-only { width: 28px; padding: 0; }
+
+  /* live MC: calendar cap + two date segments joined into one control, rounded
+     only at the outer ends. Dates are plain 11px/400 text, not pills. */
+  .daterange { display: inline-flex; align-items: stretch; }
+  .daterange > * {
+    height: 28px; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--white); border: 1px solid var(--border); border-radius: 0;
+    font-family: inherit; font-size: 11px; font-weight: 400; color: var(--ink);
+    margin-left: -1px;   /* collapse the shared edge */
+    box-shadow: var(--shadow-btn);
+  }
+  .daterange > *:first-child { margin-left: 0; border-radius: 5px 0 0 5px; width: 28px; }
+  .daterange > *:last-child { border-radius: 0 5px 5px 0; }
+  .daterange .seg { padding: 0 8px; min-width: 80px; }
+  .daterange > *:hover { background: var(--coral-wash); border-color: var(--coral); color: var(--coral); z-index: 1; position: relative; }
+  .daterange .svg-inline--fa { font-size: 11px; }
+
+  /* the toolbar's trailing icon cluster is split by a rule before the last two */
+  .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+  /* live MC: 12px/400, not semi-bold */
+  .copy-child { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 400; color: var(--ink); white-space: nowrap; }
+  .copy-child .svg-inline--fa { font-size: 11px; color: var(--icon-disabled); }
+
+  /* ---------------- Row/Column dropdown ----------------
+     Two groups: Row (view density) and Column (which meta columns show). Some
+     rows carry a chevron for a further submenu on the live product. */
+  .tb-wrap { position: relative; }
+  .rc-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 300;
+    width: 216px; max-height: 420px; overflow-y: auto; padding: 6px 0;
+    background: var(--white); border: 1px solid var(--border); border-radius: 5px;
+    box-shadow: var(--shadow-menu); display: none;
+  }
+  .rc-menu.open { display: block; }
+  .rc-head { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); padding: 7px 12px 4px; }
+  .rc-group + .rc-group { border-top: 1px solid var(--border-table); margin-top: 4px; }
+  .rc-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 11px; color: var(--ink); cursor: pointer; }
+  .rc-item:hover { background: var(--bg); }
+  .rc-item span.lbl { flex: 1; }
+  .rc-item .chev { color: var(--ink-2); font-size: 9px; }
+  /* live MC checkbox: 14px, coral fill when checked, 3px radius */
+  input[type=checkbox].cb-sm {
+    appearance: none; -webkit-appearance: none;
+    width: 14px; height: 14px; margin: 0; flex-shrink: 0;
+    border: 2px solid var(--disabled); border-radius: 3px; background: var(--white);
+    cursor: pointer; position: relative;
+  }
+  input[type=checkbox].cb-sm:checked { background: var(--coral); border-color: var(--coral); }
+  input[type=checkbox].cb-sm:checked::after {
+    content: ''; position: absolute; left: 3px; top: 0;
+    width: 3px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+
+  /* ---------------- Card + scroller ---------------- */
+  /* live MC: x=8, 10px radius, 0 2px 4px rgba(0,0,0,.1), 4px of padding on top */
+  .card {
+    margin: 8px; padding-top: 4px; background: var(--white);
+    border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden;
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+  }
+  /* The table is a bordered box inset from the card, not end-to-end: rules on all
+     four sides, so the header has something above it and the right edge is visible
+     once the calendar is scrolled to its end. */
+  .table-wrap {
+    overflow: auto; flex: 1; min-height: 0;
+    margin: 0 8px 8px; border: 1px solid var(--border);
+  }
+  table { border-collapse: collapse; table-layout: fixed; }
+
+  /* ---------------- Header row ----------------
+     live MC: 48px tall, 11px/600. Day headers are two lines; weekends carry a wash. */
+  thead th {
+    position: sticky; top: 0; z-index: 3;
+    height: 48px; background: var(--white);
+    font-size: 11px; font-weight: 600; color: var(--ink);
+    text-align: left; white-space: nowrap;
+    border-bottom: 1px solid var(--border-table);
+  }
+  thead th.meta { padding: 0 16px; color: #4A5568; border-right: 1px solid var(--meta-rule); }
+  thead th.day { padding: 0 4px; text-align: center; border-right: 1px solid var(--grid); }
+  thead th.day.we { background: var(--weekend); }
+  .day-d { display: block; font-size: 11px; font-weight: 600; line-height: 13px; }
+  .day-w { display: block; font-size: 11px; font-weight: 400; color: var(--ink-2); line-height: 13px; }
+  .th-c { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }
+  .sort-ico { display: inline-flex; flex-direction: column; align-items: center; line-height: 0; color: var(--sort); flex-shrink: 0; }
+  .sort-ico .svg-inline--fa { font-size: 10px; display: block; margin: -3px 0; }
+
+  /* ---------------- Body ----------------
+     live MC: rows are 62px. Each cell carries the horizontal rule on its TOP edge. */
+  tbody td { height: 62px; background: var(--white); vertical-align: middle; font-size: 11px; color: var(--ink); border-top: 1px solid var(--row-rule); }
+  tbody td.meta { padding: 0 16px; border-right: 1px solid var(--meta-rule); }
+  /* Save & Refresh, Base and Total Occ were touching the column edge — these
+     columns have little slack, so they get even padding and centre their control. */
+  thead th.meta.c, tbody td.meta.c { padding: 0 6px; text-align: center; }
+  /* close the data block with its own rule under the last row */
+  tbody tr:last-child td { border-bottom: 1px solid var(--row-rule); }
+
+  /* ---------------- Column pinning (MUI Data Grid model) ----------------
+     Defaults match live MC: only the checkbox and Listings are pinned left.
+     Any meta column can be pinned left or right from its header menu; offsets
+     are set inline by render(). Each pinned block is closed by the dark rule,
+     plus a shadow while content is scrolled underneath it. */
+  th.pin-l, td.pin-l, th.pin-r, td.pin-r { position: sticky; z-index: 2; }
+  thead th.pin-l, thead th.pin-r { z-index: 5; }
+  th.sel, td.sel { width: 40px; padding: 0; text-align: center; }
+  th.pin-edge-l, td.pin-edge-l { box-shadow: inset -1px 0 0 var(--grid); }
+  .table-wrap.scrolled th.pin-edge-l, .table-wrap.scrolled td.pin-edge-l { box-shadow: inset -1px 0 0 var(--grid), 4px 0 4px -2px rgba(0,0,0,.1); }
+  th.pin-edge-r, td.pin-edge-r { box-shadow: inset 1px 0 0 var(--grid); }
+  .table-wrap.more-r th.pin-edge-r, .table-wrap.more-r td.pin-edge-r { box-shadow: inset 1px 0 0 var(--grid), -4px 0 4px -2px rgba(0,0,0,.1); }
+
+  /* header tools: sort carets + the MUI-style ⋮ column menu, shown on hover */
+  .th-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .th-pin { font-size: 9px; color: var(--ink-2); margin-right: 5px; }
+  .th-tools { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .sort-ico[data-dir="asc"] .svg-inline--fa:last-child,
+  .sort-ico[data-dir="desc"] .svg-inline--fa:first-child { opacity: .3; }
+  .sort-ico[data-dir="asc"], .sort-ico[data-dir="desc"] { color: var(--ink); }
+  /* like MUI, the button takes no room until the header is hovered */
+  .th-menu {
+    width: 0; height: 20px; display: grid; place-items: center; padding: 0; overflow: hidden;
+    border: none; border-radius: var(--radius); background: transparent; color: var(--ink-2);
+    visibility: hidden;
+  }
+  .th-menu .svg-inline--fa { font-size: 11px; }
+  thead th:hover .th-menu, .th-menu[aria-expanded="true"], .th-menu:focus-visible { width: 20px; visibility: visible; }
+  body.col-dragging thead th .th-menu { width: 0; visibility: hidden; }
+  .th-menu:hover, .th-menu[aria-expanded="true"] { background: var(--bg); color: var(--ink); }
+  .th-menu:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+  /* reordering: no drag ghost, no live shuffle — the dragged header is
+     highlighted and a blue rule marks where it will land */
+  thead th.drag-ok { cursor: grab; }
+  body.col-dragging, body.col-dragging * { cursor: grabbing !important; user-select: none; }
+  thead th.is-dragging { background: #F3F8FE; box-shadow: inset 0 0 0 1px var(--blue); color: var(--blue); }
+  thead th.drop-l::before, thead th.drop-r::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--blue); z-index: 1;
+  }
+  thead th.drop-l::before { left: -1px; }
+  thead th.drop-r::after { right: -1px; }
+
+  /* column menu — MUI GridColumnMenu items, in the MC compact menu style */
+  .col-menu {
+    position: fixed; z-index: 400; width: 200px; padding: 6px 0;
+    background: var(--white); border: 1px solid var(--border); border-radius: 5px;
+    box-shadow: var(--shadow-menu); display: none;
+  }
+  .col-menu.open { display: block; }
+  .cm-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 12px;
+    background: none; border: none; font-size: 11px; font-weight: 400; color: var(--ink); text-align: left;
+  }
+  .cm-item .svg-inline--fa { font-size: 11px; width: 12px; color: var(--ink-2); flex-shrink: 0; }
+  .cm-item:hover { background: var(--bg); }
+  .cm-item.on, .cm-item.on:hover { background: var(--coral-wash); color: var(--coral); }
+  .cm-item.on .svg-inline--fa { color: var(--coral); }
+  .cm-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .cm-sep { height: 1px; background: var(--border-table); margin: 4px 0; }
+
+  /* Manage columns panel — MUI GridColumnsManagement: search, list, Show/Hide All + Reset */
+  .cols-panel {
+    position: fixed; z-index: 400; width: 260px;
+    background: var(--white); border: 1px solid var(--border); border-radius: 5px;
+    box-shadow: var(--shadow-menu); display: none; flex-direction: column;
+  }
+  .cols-panel.open { display: flex; }
+  .cp-search { padding: 10px 12px 6px; }
+  .cp-search .search { width: 100%; }
+  .cp-list { max-height: 280px; overflow-y: auto; padding: 2px 0 6px; }
+  .cp-item.dis { color: var(--disabled); cursor: default; }
+  .cp-item.dis:hover { background: none; }
+  .cp-item.dis input[type=checkbox].cb-sm { opacity: .5; cursor: default; }
+  .cp-empty { padding: 8px 12px; font-size: 11px; color: var(--ink-2); }
+  .cp-foot { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 0; border-top: 1px solid var(--border-table); }
+  .cp-foot .rc-item:hover { background: none; }
+  .cp-reset { border: none; background: none; padding: 5px 8px; border-radius: var(--radius); font-size: 11px; font-weight: 600; color: var(--coral); }
+  .cp-reset:hover:not(:disabled) { background: var(--coral-wash); }
+  .cp-reset:disabled { color: var(--disabled); cursor: default; }
+  .cp-reset:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  input[type=checkbox].cb-sm:indeterminate { background: var(--coral); border-color: var(--coral); }
+  input[type=checkbox].cb-sm:indeterminate::after {
+    content: ''; position: absolute; left: 2px; top: 4px; width: 6px; height: 2px; background: #fff;
+  }
+
+
+  input[type=checkbox].cb {
+    appearance: none; -webkit-appearance: none;
+    width: 16px; height: 16px; margin: 0;
+    border: 2px solid var(--ink-2); border-radius: 3px; background: var(--white);
+    cursor: pointer; position: relative; flex-shrink: 0;
+  }
+  input[type=checkbox].cb:checked { background: var(--coral); border-color: var(--coral); }
+  input[type=checkbox].cb:checked::after {
+    content: ''; position: absolute; left: 4px; top: 1px;
+    width: 4px; height: 8px; border: solid var(--white); border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+
+  /* listing cell — compact: 11px channel line, 11px name, two 20px icon buttons */
+  .lc { display: flex; align-items: center; gap: 6px; }
+  .lc-main { min-width: 0; flex: 1; }
+  .lc-chan { display: flex; align-items: center; gap: 4px; font-size: 10px; line-height: 12px; color: var(--ink-2); white-space: nowrap; }
+  .lc-ext { color: var(--blue); display: inline-flex; font-size: 10px; }
+  .lc-name {
+    font-size: 11px; font-weight: 400; color: var(--ink); line-height: 14px; margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  /* live MC: 20x20, white, 1px #E0E0E0, 4px radius — stacked at the cell's right edge */
+  .lc-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .ibtn {
+    width: 20px; height: 20px; display: grid; place-items: center;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); color: var(--ink);
+  }
+  .ibtn .svg-inline--fa { font-size: 10px; }
+  .ibtn:hover { background: var(--coral-wash); border-color: var(--coral); color: var(--coral); }
+  .ibtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+  /* meta-column controls, all shrunk to match */
+  /* live MC: the toggle and a refresh button share the first line, the timestamp
+     sits on the line beneath them. */
+  .sync-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .sync-top { display: flex; align-items: center; gap: 6px; }
+  .switch { position: relative; width: 36px; height: 20px; border-radius: 800px; background: var(--ink-2); border: none; padding: 0; flex-shrink: 0; }
+  .switch.on { background: var(--green); }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch.on::after { left: 18px; }
+  /* secondary style, sized like the PD/ML tag-add control: 24px square, white,
+     1px border, 4px radius, button shadow */
+  .sync-refresh {
+    width: 24px; height: 24px; display: grid; place-items: center;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--ink); box-shadow: var(--shadow-btn);
+  }
+  .sync-refresh .svg-inline--fa { font-size: 11px; }
+  .sync-refresh:hover { background: var(--coral-wash); border-color: var(--coral); color: var(--coral); }
+  .sync-refresh:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .sync-meta { font-size: 11px; font-weight: 400; color: var(--ink); white-space: nowrap; }
+  .sync-meta .warn { color: var(--amber); }
+  /* all three measured off live MC — they were undersized in the first pass */
+  .btn-save {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 95px; height: 28px; padding: 0 8px;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; box-shadow: var(--shadow-btn);
+  }
+  .btn-save:hover { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .cell-input {
+    width: 111px; height: 28px; padding: 0 6px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: 11px; color: var(--ink);
+  }
+  .cell-input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 4px rgba(243,117,121,.25); }
+  .occ {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 50px; height: 24px; padding: 4px 10px;
+    border: 1px solid #FCDCDD; background: var(--coral-wash); border-radius: 15px;
+    font-size: 12px; font-weight: 600; color: #FF0000;
+  }
+  .muted { color: var(--ink-2); }
+
+  /* ---------------- Pricing cells ----------------
+     live MC: 60x62, demand fill, 1px #AEAEAE rule on the RIGHT of every cell —
+     this is what makes the calendar read as a grid. */
+  /* Two divider weights, both measured off live MC: the light rule sits between
+     ordinary days, and the DARK one lands on Thursday and Saturday — bracketing
+     the Fri-Sat weekend block. The body carries no weekend tint; only the header
+     does. */
+  td.pc {
+    width: 60px; padding: 2px 3px; text-align: center;
+    border-right: 1px solid var(--day-rule);
+    vertical-align: middle;
+  }
+  td.pc.wk { border-right-color: var(--grid); }
+  .pc-price { font-size: 11px; font-weight: 400; color: var(--ink); line-height: 14px; }
+  .pc-meta { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 10px; color: var(--ink); line-height: 12px; margin-top: 1px; }
+  .pc-meta .svg-inline--fa { font-size: 9px; }
+  .pc-marks { display: flex; align-items: center; justify-content: center; gap: 3px; line-height: 10px; margin-top: 1px; min-height: 10px; }
+  .pc-marks .svg-inline--fa { font-size: 9px; }
+  .m-event { color: var(--mark-event); }
+  .m-restrict { color: var(--mark-restrict); }
+  .m-limit { color: var(--error); }
+  .m-unbook { color: var(--error); }
+  .m-key, .m-bed { color: var(--ink); }
+  .m-multi { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #fff; border: 1px solid var(--ink-chakra); }
+
+  .dm-low     { background: var(--dm-low); }
+  .dm-normal  { background: var(--dm-normal); }
+  .dm-good    { background: var(--dm-good); }
+  .dm-high    { background: var(--dm-high); }
+  .dm-unavail { background: var(--dm-unavail); }
+
+  /* a listing whose pricing could not be fetched — one band across the calendar */
+  td.pc-error { background: var(--coral-wash); color: var(--ink-chakra); font-size: 11px; padding: 0 16px; text-align: left; border-right: none; }
+
+  /* ---------------- Footer ----------------
+     live MC: the legend sits bottom-left, paging bottom-right. Legend text is 12px. */
+  .foot {
+    display: flex; align-items: center; gap: 16px;
+    width: 100%; padding: 14px 16px; background: var(--white);
+    border-top: 1px solid var(--border); box-shadow: var(--shadow-bar); flex-shrink: 0;
+  }
+  /* the two legend rows were crowded — more room between and within them */
+  .legend { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .legend-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12px; line-height: 16px; color: var(--ink); }
+  .legend-row b { font-weight: 600; }
+  .lg { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .lg .sw { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+  .lg .svg-inline--fa { font-size: 11px; }
+  .lg .ring { width: 14px; height: 14px; border-radius: 800px; background: #fff; border: 1px solid var(--ink-chakra); flex-shrink: 0; }
+
+  .foot-right { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-shrink: 0; }
+  .page-size { position: relative; display: inline-block; }
+  .page-size select {
+    appearance: none; -webkit-appearance: none;
+    width: 120px; height: 28px; padding: 0 26px 0 10px;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--white);
+    font-family: inherit; font-size: 11px; color: var(--ink);
+  }
+  .page-size .svg-inline--fa { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink); pointer-events: none; }
+  .pager { display: flex; align-items: center; gap: 4px; }
+  .pager .count { font-size: 11px; color: var(--ink); white-space: nowrap; margin-right: 4px; }
+  .pager button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--border); background: var(--white); border-radius: var(--radius); color: var(--ink); }
+  .pager button .svg-inline--fa { font-size: 10px; }
+  .pager button:hover { background: var(--bg); }
+  .pager .pg { font-size: 11px; font-weight: 600; color: var(--ink); padding: 0 4px; }
+
+
+  /* ---------------- Avatar menu — production "Settings & Preferences" dropdown,
+     measured off app.pricelabs.co (262px, 4px 0 pad, radius 4, #E2E8F0 border,
+     0 4px 8px rgba(0,0,0,.2) shadow, far-family icons). Ported from the
+     control-panel resource; Settings links to that page. ---------------- */
+  .av-wrap { position: relative; flex-shrink: 0; }
+  button.nav-avatar { border: none; cursor: pointer; }
+  .av-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 300;
+    width: 262px; padding: 4px 0; background: var(--white);
+    border: 1px solid #E2E8F0; border-radius: 4px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,.2); display: none; color: var(--ink);
+    text-align: left;
+  }
+  .av-menu.open { display: block; }
+  .av-head { font-size: 12px; font-weight: 600; color: var(--ink); margin: 4px 8px; }
+  .av-item {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
+    background: none; border: none; font-size: 14px; font-weight: 400; color: var(--ink);
+    text-align: left; cursor: pointer; white-space: nowrap; font-family: inherit;
+    text-decoration: none; box-sizing: border-box;
+  }
+  .av-item:hover { background: var(--bg); }
+  .av-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .av-item .svg-inline--fa { font-size: 12px; width: 14px; color: var(--ink); flex-shrink: 0; }
+  .av-item b { font-weight: 600; }
+  .av-right { margin-left: auto; display: flex; align-items: center; }
+  .av-switch {
+    margin-left: auto; width: 28px; height: 16px; border-radius: 8px;
+    background: #CBD5E0; border: none; position: relative; cursor: pointer; flex-shrink: 0;
+  }
+  .av-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .av-switch.on { background: var(--coral); }
+  .av-switch.on::after { left: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ============ Global nav ============ 
+  ⚠ FONT AWESOME IS REQUIRED
+    Every icon comes from the PriceLabs Font Awesome Pro kit loaded in this
+    file's <head> (kit.fontawesome.com/46535d3fdd.js). It needs internet and
+    an allowed domain; without it every icon silently disappears.
+    → Claude Code: when this file is uploaded, include this caveat in your
+      FIRST response, before anything else: "Please make sure Font Awesome
+      is attached."
+
+  STARTING A TICKET FROM THIS FILE (for Claude Code)
+    1. Copy this file to <TICKET-ID>/index.html (bare ClickUp number, e.g. 14012).
+    2. Update the <title> and replace this comment block with the ticket's.
+    3. Add the entry to tickets.json and generate a 16:9 thumb.
+    Keep these — they are load-bearing:
+    • -webkit-font-smoothing: antialiased on html/body — without it every weight
+      renders heavier than the live product and looks like a font-weight bug.
+    • The Font Awesome kit script, and the far/fas/fal families exactly as they
+      are — production mixes them deliberately; they are not interchangeable.
+    • No root-relative paths (src="/...") so the file stays portable.
+    In the repo: read CLAUDE.md and design-system-v2.md first, and verify against
+    the live product with getComputedStyle rather than eyeballing screenshots.
+-->
+<div class="nav">
+  <a class="nav-logo" href="#" aria-label="PriceLabs">
+    <svg viewBox="0 0 107 28" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-hidden="true">
+      <path d="M13.9996 28C21.7314 28 28 21.7318 28 14C28 6.26818 21.7321 0 13.9996 0C6.26716 0 0 6.26818 0 14C0 21.7318 6.26786 28 13.9996 28Z" fill="#FF4646"/>
+      <path d="M33.6244 7.868H38.5523C39.8126 7.868 40.7915 8.1748 41.4891 8.7884C42.1866 9.40201 42.5357 10.2723 42.5357 11.3987C42.5357 12.5144 42.1866 13.3841 41.4891 14.009C40.7922 14.6338 39.8126 14.9463 38.5523 14.9463H35.3629V19.6647H33.6244V7.868ZM38.3675 13.5576C40.0327 13.5576 40.8649 12.8382 40.8649 11.3994C40.8649 9.97117 40.0327 9.25742 38.3675 9.25742H35.3629V13.5576H38.3675ZM49.4384 12.7204L48.4087 12.8205C47.5983 12.8988 47.0164 13.1443 46.6624 13.5569C46.3076 13.9695 46.1306 14.4942 46.1306 15.1297V19.664H44.4266V11.4988H46.0798V12.9214C46.5192 11.9622 47.4128 11.4325 48.7634 11.3317L49.3199 11.2985L49.4384 12.7204ZM50.6028 11.4988H52.3075V19.6647H50.6028V11.4988ZM52.4429 7.85107V9.60795H50.485V7.85107H52.4429ZM58.2989 19.7818C57.466 19.7818 56.7438 19.609 56.1302 19.2634C55.5166 18.9178 55.0447 18.4297 54.7126 17.7992C54.3804 17.1687 54.2139 16.4302 54.2139 15.5825C54.2139 14.7347 54.3853 13.9871 54.7288 13.3403C55.0715 12.6936 55.5554 12.1914 56.1803 11.8346C56.8044 11.4777 57.533 11.2992 58.366 11.2992C58.9394 11.2992 59.4937 11.3937 60.0276 11.5835C60.5622 11.7732 60.9981 12.0299 61.3359 12.3529L60.8126 13.5576C60.0699 12.9553 59.2998 12.6541 58.5014 12.6541C57.7136 12.6541 57.0971 12.908 56.6528 13.4158C56.2085 13.9236 55.9863 14.6402 55.9863 15.5662C55.9863 16.481 56.2056 17.1863 56.6443 17.6828C57.083 18.1793 57.7023 18.4276 58.5014 18.4276C59.2998 18.4276 60.0706 18.1264 60.8126 17.5241L61.3359 18.7457C60.9762 19.0694 60.5255 19.3226 59.986 19.5067C59.4465 19.6901 58.8836 19.7818 58.2989 19.7818ZM69.8932 15.8667H64.071C64.1945 17.5961 65.0613 18.46 66.67 18.46C67.6151 18.46 68.4706 18.1532 69.2359 17.5396L69.7592 18.7273C69.3762 19.0511 68.9044 19.3078 68.3416 19.4968C67.7787 19.6865 67.2053 19.781 66.6207 19.781C65.3039 19.781 64.2664 19.4072 63.5068 18.6596C62.7472 17.912 62.3671 16.8802 62.3671 15.5641C62.3671 14.7276 62.5335 13.9857 62.8657 13.3389C63.1979 12.6922 63.6641 12.19 64.2664 11.8331C64.868 11.4763 65.5514 11.2978 66.3167 11.2978C67.4303 11.2978 68.3056 11.6547 68.9411 12.3685C69.5772 13.0822 69.8946 14.0696 69.8946 15.33V15.8667H69.8932ZM66.3491 12.5363C65.696 12.5363 65.1762 12.7401 64.7876 13.1471C64.3997 13.554 64.1655 14.1373 64.0873 14.8955H68.4248C68.3909 14.1366 68.197 13.554 67.8429 13.1471C67.4882 12.7401 66.9902 12.5363 66.3491 12.5363Z" fill="#FF4646"/>
+      <path d="M84.4412 11.2984C85.5443 11.2984 86.3631 11.5721 86.897 12.1187C87.4316 12.6653 87.6989 13.4961 87.6989 14.6119V19.6653H86.062V18.3097C85.8483 18.7893 85.5302 19.1547 85.1091 19.4058C84.6867 19.6568 84.1944 19.7824 83.6322 19.7824C83.092 19.7824 82.5969 19.6738 82.1469 19.4558C81.6969 19.2386 81.345 18.9346 81.0918 18.5439C80.8386 18.1532 80.7116 17.7187 80.7116 17.2384C80.7116 16.6474 80.8668 16.1812 81.1764 15.8412C81.4853 15.5013 81.9974 15.2587 82.7126 15.1134C83.4263 14.9681 84.4081 14.8961 85.6578 14.8961H86.0457V14.4109C86.0457 13.786 85.9139 13.3346 85.6494 13.0553C85.3849 12.7767 84.954 12.6371 84.3587 12.6371C83.4242 12.6371 82.4911 12.9213 81.5566 13.4905L81.0502 12.3021C81.4889 12.0009 82.0207 11.7583 82.6448 11.5742C83.2683 11.3901 83.8671 11.2984 84.4412 11.2984ZM91.7325 7.86792V12.8374C91.9801 12.3465 92.3397 11.9671 92.8123 11.6998C93.2848 11.4317 93.83 11.2984 94.4493 11.2984C95.1694 11.2984 95.8048 11.4712 96.3564 11.8168C96.9079 12.1624 97.3381 12.6533 97.6478 13.2895C97.9567 13.9257 98.1118 14.6669 98.1118 15.5147C98.1118 16.3511 97.9574 17.0931 97.6478 17.7399C97.3381 18.3866 96.9051 18.8888 96.3479 19.2457C95.7914 19.6025 95.1581 19.781 94.4493 19.781C93.83 19.781 93.2841 19.6498 92.8123 19.3881C92.3397 19.1258 91.9801 18.7491 91.7325 18.259V19.6646H90.0278V7.86792H91.7325ZM103.04 11.2984C103.625 11.2984 104.182 11.3908 104.711 11.5742C105.24 11.7583 105.695 12.0178 106.077 12.3522L105.554 13.5399C104.744 12.9037 103.906 12.5863 103.039 12.5863C102.522 12.5863 102.114 12.6865 101.815 12.8875C101.517 13.0885 101.368 13.3614 101.368 13.7077C101.368 13.9863 101.461 14.2127 101.646 14.3855C101.832 14.5583 102.128 14.6895 102.532 14.7783L103.933 15.0964C104.732 15.2749 105.316 15.5506 105.688 15.9244C106.059 16.2982 106.245 16.7863 106.245 17.3886C106.245 18.1249 105.943 18.7075 105.342 19.137C104.74 19.5666 103.927 19.781 102.903 19.781C101.474 19.781 100.332 19.4354 99.4773 18.7435L100.001 17.5219C100.845 18.1687 101.829 18.4924 102.954 18.4924C103.506 18.4924 103.928 18.4 104.22 18.2166C104.513 18.0326 104.659 17.773 104.659 17.4387C104.659 17.1488 104.561 16.9203 104.364 16.7525C104.167 16.5853 103.827 16.4457 103.343 16.3342L101.976 16.0331C101.245 15.8659 100.693 15.5923 100.322 15.2128C99.9505 14.8334 99.7657 14.3538 99.7657 13.774C99.7657 13.0377 100.066 12.441 100.669 11.9833C101.27 11.527 102.061 11.2984 103.04 11.2984ZM73.7074 7.86792V18.2258H79.4795V19.6646H71.9689V7.86792H73.7074ZM86.0443 15.8497H85.7411C84.8637 15.8497 84.188 15.8885 83.7155 15.9668C83.2429 16.045 82.9058 16.1762 82.7034 16.3603C82.501 16.5444 82.3994 16.8096 82.3994 17.1552C82.3994 17.5459 82.5433 17.8717 82.8303 18.1341C83.1167 18.3965 83.4855 18.5277 83.9355 18.5277C84.5548 18.5277 85.0605 18.3182 85.4547 17.9C85.8483 17.4817 86.045 16.9436 86.045 16.2856V15.8497H86.0443ZM94.0437 12.6533C93.3011 12.6533 92.7305 12.9044 92.3313 13.4066C91.9314 13.9087 91.7325 14.6225 91.7325 15.5485C91.7325 16.4746 91.9321 17.1883 92.3313 17.6905C92.7312 18.1927 93.3011 18.4437 94.0437 18.4437C94.7751 18.4437 95.3464 18.187 95.7569 17.6743C96.1674 17.1608 96.3726 16.4414 96.3726 15.5154C96.3726 14.6006 96.1709 13.8953 95.7653 13.3988C95.3612 12.9016 94.7864 12.6533 94.0437 12.6533Z" fill="#FF4646"/>
+      <path d="M13.2833 9.69214L8.99036 14.0007L13.2833 18.3064L11.297 20.2996L5.01672 14.0007L11.297 7.69995L13.2833 9.69214Z" fill="white"/>
+      <path d="M14.7168 18.3079L19.0098 13.9993L14.7168 9.6936L16.7031 7.70044L22.9834 13.9993L14.7168 18.3079Z" fill="white"/>
+    </svg>
+  </a>
+  <div class="nav-items">
+    <div class="nav-item-wrap">
+      <button class="nav-item" id="dp-trigger" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i>
+        Dynamic Pricing <i class="fa-solid fa-caret-down nav-caret" aria-hidden="true"></i>
+      </button>
+      <div class="nav-menu" id="dp-menu" role="menu">
+        <a href="#" role="menuitem"><span class="t">Pricing Dashboard</span><span class="d">View pricing calendars for your listings</span></a>
+        <a href="pricelabs-multi-calendar.html" role="menuitem" class="on"><span class="t">Multi Calendar</span><span class="d">Review multiple listings at once</span></a>
+        <a href="#" role="menuitem"><span class="t">Manage Listings</span><span class="d">Map, edit or delete your listings</span></a>
+        <a href="#" role="menuitem"><span class="t">Customizations</span><span class="d">Add account, group customizations</span></a>
+      </div>
+    </div>
+    <button class="nav-item">
+      <i class="fa-solid fa-chart-mixed" aria-hidden="true"></i>
+      Portfolio Analytics <i class="fa-solid fa-caret-down nav-caret" aria-hidden="true"></i>
+    </button>
+    <button class="nav-item">
+      <i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>
+      Market Research <i class="fa-solid fa-caret-down nav-caret" aria-hidden="true"></i>
+    </button>
+    <button class="nav-item">
+      <i class="fa-solid fa-star-half-stroke" aria-hidden="true"></i>
+      Listing Optimizer
+    </button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-right">
+    <button class="nav-pill">
+      <svg class="spark" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2C12 2 12.8 8 14.5 9.5C16 11 22 12 22 12C22 12 16 13 14.5 14.5C13 16 12 22 12 22C12 22 11 16 9.5 14.5C8 13 2 12 2 12C2 12 8 11 9.5 9.5C11 8 12 2 12 2Z"/></svg>
+      Ask AI
+    </button>
+    <button class="nav-pill">
+      <i class="fa-regular fa-bell" aria-hidden="true"></i>
+      Action Center
+    </button>
+    <div class="av-wrap">
+      <button class="nav-avatar" id="av-trigger" aria-haspopup="true" aria-expanded="false">AK</button>
+      <div class="av-menu" id="av-menu" role="menu" aria-label="Settings &amp; Preferences">
+        <div class="av-head">Settings &amp; Preferences</div>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-circle-plus" aria-hidden="true"></i> Add Listings</button>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-credit-card" aria-hidden="true"></i> Billing</button>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-file" aria-hidden="true"></i> Logs</button>
+        <a class="av-item" role="menuitem" href="#"><i class="fa-regular fa-gear" aria-hidden="true"></i> Settings</a>
+        <div class="av-item" role="menuitemcheckbox" aria-checked="false"><i class="fa-regular fa-moon" aria-hidden="true"></i> Dark Mode
+          <button class="av-switch" id="av-dark" role="switch" aria-checked="false" aria-label="Dark mode"></button>
+        </div>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-arrow-right-from-bracket" aria-hidden="true"></i> Sign Out</button>
+        <div class="av-head">Other Links</div>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help
+          <span class="av-right"><i class="fa-regular fa-arrow-up-right-from-square" aria-hidden="true"></i></span></button>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-person-chalkboard" aria-hidden="true"></i> Training
+          <span class="av-right"><i class="fa-regular fa-arrow-up-right-from-square" aria-hidden="true"></i></span></button>
+        <button class="av-item" role="menuitem"><i class="fa-regular fa-circle-user" aria-hidden="true"></i> User ID:&nbsp;<b>339886</b>
+          <span class="av-right"><i class="fa-regular fa-copy" aria-hidden="true"></i></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Card: the toolbar and the table share ONE white box ============ -->
+<div class="card">
+  <div class="toolbar">
+    <div class="tb-left">
+      <div class="search">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="text" placeholder="Search listings, IDs, cities, and tags">
+      </div>
+      <!-- one joined control: calendar cap + two date segments, rounded at the ends only -->
+      <div class="daterange">
+        <button aria-label="Pick dates" title="Pick dates"><i class="fa-regular fa-calendar-range" aria-hidden="true"></i></button>
+        <button class="seg">Aug 20, 2026</button>
+        <button class="seg">Nov 17, 2026</button>
+      </div>
+      <label class="copy-child">
+        <input type="checkbox" class="cb-sm" checked>
+        Copy Min/Base/Max to Child
+        <i class="fa-regular fa-circle-info" aria-hidden="true"></i>
+      </label>
+    </div>
+    <div class="tb-right">
+      <div class="tb-wrap">
+        <button class="cbtn" id="rc-trigger" aria-haspopup="true" aria-expanded="false" title="Show/Hide Table Rows &amp; Columns">
+          <i class="fa-regular fa-eye" aria-hidden="true"></i> Row/Column <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
+        </button>
+      <div class="rc-menu" id="rc-menu" role="menu">
+        <div class="rc-group">
+          <div class="rc-head">Row</div>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" checked><span class="lbl">Overview</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm"><span class="lbl">Min-stay</span></label>
+        </div>
+        <div class="rc-group">
+          <div class="rc-head">Column</div>
+        <label class="rc-item"><input type="checkbox" class="cb-sm"><span class="lbl">Notes</span><i class="fa-solid fa-chevron-right chev" aria-hidden="true"></i></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="tags"><span class="lbl">Tags</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="alerts"><span class="lbl">Action Center</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="sync"><span class="lbl">Sync Price Toggle</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm"><span class="lbl">Property Type</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="save"><span class="lbl">Save & Refresh</span><i class="fa-solid fa-chevron-right chev" aria-hidden="true"></i></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm"><span class="lbl">Groups</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="beds"><span class="lbl">Bedroom Count</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="city"><span class="lbl">City</span></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="minp"><span class="lbl">Minimum Price</span><i class="fa-solid fa-chevron-right chev" aria-hidden="true"></i></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm" data-col="base"><span class="lbl">Base Price</span><i class="fa-solid fa-chevron-right chev" aria-hidden="true"></i></label>
+        <label class="rc-item"><input type="checkbox" class="cb-sm"><span class="lbl">Previous Base Price</span></label>
+        </div>
+      </div>
+      </div>
+      <button class="cbtn"><i class="fa-regular fa-filter-list" aria-hidden="true"></i> Quick Filters <i class="fa-solid fa-caret-down" aria-hidden="true"></i></button>
+      <button class="cbtn"><i class="fa-regular fa-filter" aria-hidden="true"></i> Filters</button>
+      <button class="cbtn"><i class="fa-solid fa-chart-mixed" aria-hidden="true"></i> Add Metrics</button>
+      <button class="cbtn"><i class="fa-regular fa-bullseye" aria-hidden="true"></i> Manage Goals</button>
+      <button class="cbtn icon-only" aria-label="Map listings"><i class="fa-regular fa-network-wired" aria-hidden="true"></i></button>
+      <button class="cbtn icon-only" aria-label="Settings"><i class="fa-regular fa-gear" aria-hidden="true"></i></button>
+      <span class="tb-sep"></span>
+      <button class="cbtn icon-only" aria-label="Add"><i class="fa-regular fa-circle-plus" aria-hidden="true"></i></button>
+      <button class="cbtn icon-only" aria-label="Help"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="table-wrap">
+    <table>
+      <colgroup id="cg"></colgroup>
+      <thead><tr id="head-row"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ Column menu + Manage columns panel (MUI Data Grid interactions) ============
+  IDs on every touchpoint (mc-colmenu-*, mc-cols-*) so usage can be tracked. -->
+<div class="col-menu" id="col-menu" role="menu" aria-label="Column menu"></div>
+<div class="cols-panel" id="cols-panel" role="dialog" aria-label="Manage columns">
+  <div class="cp-search">
+    <div class="search">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="text" id="cp-q" placeholder="Search" aria-label="Search columns">
+    </div>
+  </div>
+  <div class="cp-list" id="cp-list"></div>
+  <div class="cp-foot">
+    <label class="rc-item"><input type="checkbox" class="cb-sm" id="mc-cols-all"><span class="lbl">Show/Hide All</span></label>
+    <button class="cp-reset" id="mc-cols-reset">Reset</button>
+  </div>
+</div>
+
+<!-- ============ Footer: legend left, paging right ============ -->
+<div class="foot">
+  <div class="legend">
+    <div class="legend-row">
+      <b>Demand:</b>
+      <span class="lg"><span class="sw" style="background:var(--dm-low)"></span>Low</span>
+      <span class="lg"><span class="sw" style="background:var(--dm-normal)"></span>Normal</span>
+      <span class="lg"><span class="sw" style="background:var(--dm-good)"></span>Good</span>
+      <span class="lg"><span class="sw" style="background:var(--dm-high)"></span>High</span>
+      <span class="lg"><span class="sw" style="background:var(--dm-unavail)"></span>Unavailable</span>
+      <span class="lg"><i class="fa-solid fa-triangle-exclamation m-unbook" aria-hidden="true"></i>Unbookable</span>
+      <span class="lg"><i class="fa-solid fa-moon" aria-hidden="true"></i>Min-stay</span>
+      <span class="lg"><i class="fa-solid fa-house-lock m-restrict" aria-hidden="true"></i>Check-in/Check-out/Both Restricted</span>
+    </div>
+    <div class="legend-row">
+      <b>Booking Info:</b>
+      <span class="lg"><i class="fa-solid fa-key m-key" aria-hidden="true"></i>Check In</span>
+      <span class="lg"><i class="fa-solid fa-bed m-bed" aria-hidden="true"></i>Booked</span>
+      <span class="lg"><span class="ring"></span>Multi-Unit Occupancy</span>
+      <span class="lg"><i class="fa-solid fa-star m-event" aria-hidden="true"></i>Events</span>
+      <span class="lg">Account/Group Date Specific Overrides</span>
+      <span class="lg"><i class="fa-solid fa-down-to-dotted-line m-limit" aria-hidden="true"></i><i class="fa-solid fa-up-to-dotted-line m-limit" aria-hidden="true"></i>Min/Max Price Limit Reached</span>
+    </div>
+  </div>
+  <div class="foot-right">
+    <div class="page-size">
+      <select aria-label="Rows per page">
+        <option>10 Listings</option>
+        <option selected>20 Listings</option>
+        <option>50 Listings</option>
+      </select>
+      <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
+    </div>
+    <div class="pager">
+      <span class="count" id="foot-count">Listings 1 to 0 of 0</span>
+      <button aria-label="First page"><i class="fa-solid fa-angles-left" aria-hidden="true"></i></button>
+      <button aria-label="Previous page"><i class="fa-solid fa-angle-left" aria-hidden="true"></i></button>
+      <span class="pg">1 / 1</span>
+      <button aria-label="Next page"><i class="fa-solid fa-angle-right" aria-hidden="true"></i></button>
+      <button aria-label="Last page"><i class="fa-solid fa-angles-right" aria-hidden="true"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Meta columns, then one 60px column per day. Widths are the live MC values.
+// ---------------------------------------------------------------------------
+const META = [
+  { key: '_sel',   label: '',               w: 40,  hideable: false },
+  { key: 'name',   label: 'Listings',       w: 201, hideable: false, sort: true },
+  { key: 'alerts', label: 'Action Center',  w: 275, sort: true },
+  { key: 'sync',   label: 'Sync Price',     w: 120 },
+  { key: 'save',   label: 'Save & Refresh', w: 110, center: true },
+  { key: 'base',   label: 'Base',           w: 128, sort: true, center: true },
+  { key: 'occ7',   label: 'Total Occ (7N)', w: 110, sort: true, center: true },
+  { key: 'tags',   label: 'Tags',           w: 150, hidden: true },
+  { key: 'city',   label: 'City',           w: 120, hidden: true, sort: true },
+  { key: 'beds',   label: 'Bedroom Count',  w: 120, hidden: true, sort: true, center: true },
+  { key: 'minp',   label: 'Minimum Price',  w: 128, hidden: true, sort: true, center: true },
+];
+const byKey = k => META.find(c => c.key === k);
+
+// ---------------------------------------------------------------------------
+// Column state, modelled on MUI Data Grid:
+//  - `order` is the column order; pinning never rewrites it, so unpinning a
+//    column sends it back to where it sat in the order.
+//  - `pins` holds the left/right pinned sets, in the order they were pinned.
+//    The selection checkbox is always the first left-pinned column.
+//  - `enabled` is column visibility; Reset returns it to DEFAULT_VIS.
+// ---------------------------------------------------------------------------
+const DEFAULT_VIS = new Set(META.filter(c => !c.hidden).map(c => c.key));
+const enabled = new Set(DEFAULT_VIS);
+const order = META.map(c => c.key);
+const pins = { left: ['name'], right: [] };
+const sort = { key: null, dir: null };
+const pinSide = k => (k === '_sel' || pins.left.includes(k)) ? 'left' : pins.right.includes(k) ? 'right' : null;
+
+function layout() {
+  const vis = k => enabled.has(k);
+  return {
+    left:  ['_sel', ...pins.left].filter(vis).map(byKey),
+    mid:   order.filter(k => !pinSide(k) && vis(k)).map(byKey),
+    right: pins.right.filter(vis).map(byKey),
+  };
+}
+
+// sticky class + inline offset per pinned column, rebuilt on every render
+let pinPos = {};
+let pinnedLeftW = 0;
+function computePins({ left, right }) {
+  pinPos = {};
+  let x = 0;
+  left.forEach((c, i) => {
+    pinPos[c.key] = { cls: 'pin-l' + (i === left.length - 1 ? ' pin-edge-l' : ''), style: `left:${x}px` };
+    x += c.w;
+  });
+  pinnedLeftW = x;
+  let r = 0;
+  [...right].reverse().forEach((c, i) => {
+    pinPos[c.key] = { cls: 'pin-r' + (i === right.length - 1 ? ' pin-edge-r' : ''), style: `right:${r}px` };
+    r += c.w;
+  });
+}
+function cellAttrs(c, isHead) {
+  const p = pinPos[c.key];
+  const cls = ['meta', 'k-' + c.key, c.key === '_sel' ? 'sel' : '', c.center ? 'c' : '', p ? p.cls : '',
+    isHead && !p ? 'drag-ok' : ''].filter(Boolean).join(' ');
+  return `class="${cls}" data-key="${c.key}"${p ? ` style="${p.style}"` : ''}`;
+}
+
+function sortedListings() {
+  const get = {
+    name: l => l.name.toLowerCase(), base: l => +l.base, occ7: l => parseFloat(l.occ),
+    city: l => l.city.toLowerCase(), beds: l => +l.beds || 0, minp: l => +l.minp,
+  }[sort.key];
+  if (!sort.dir || !get) return LISTINGS;
+  const s = [...LISTINGS].sort((a, b) => get(a) < get(b) ? -1 : get(a) > get(b) ? 1 : 0);
+  return sort.dir === 'desc' ? s.reverse() : s;
+}
+
+const START = new Date(2026, 7, 20);   // 20 Aug 2026, matching the live view
+const DAYS = 90;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const days = Array.from({ length: DAYS }, (_, i) => {
+  const d = new Date(START.getFullYear(), START.getMonth(), START.getDate() + i);
+  const g = d.getDay();
+  return {
+    date: d, label: d.getDate() + ' ' + MONTHS[d.getMonth()], dow: DOW[g],
+    we: g === 5 || g === 6,   // Fri + Sat carry the header wash
+    wk: g === 4 || g === 6,   // Thu opens and Sat closes the weekend -> dark rule
+  };
+});
+
+// ---------------------------------------------------------------------------
+// Seed data. Deterministic so the calendar looks identical on every load —
+// prototypes bake their decisions into the seed rather than randomising.
+// ---------------------------------------------------------------------------
+const LISTINGS = [
+  { id: '1634...3490', chan: 'Airbnb',  name: 'Cozy room in quiet peaceful North Bangalore', sync: true,  last: '5 minutes ago', warn: false, base: '14000', occ: '0 %', seed: 11, city: 'Bengaluru', beds: '1', minp: '9000', tags: 'Long stay' },
+  { id: '1638...5126', chan: 'Airbnb',  name: 'The Nest. Cozy 2bhk', sync: true,  last: '5 months ago',  warn: true,  base: '2500',  occ: '0 %', seed: 29, city: 'Bengaluru', beds: '2', minp: '1800', tags: 'Family, Pet friendly' },
+  { id: '_uni...127b', chan: 'Vrbo',    name: '—', sync: false, last: '5 months ago', warn: false, base: '14000', occ: '0 %', seed: 7, noPricing: true, city: 'Goa', beds: '3', minp: '10000', tags: '' },
+  { id: '9100...4512', chan: 'Booking', name: 'Modern Loft w/ Rooftop Access — South Congress', sync: true, last: '2 weeks ago',  warn: false, base: '11000', occ: '0 %', seed: 43, city: 'Austin', beds: '1', minp: '8000', tags: 'Rooftop' },
+];
+
+const DEMAND = ['low', 'normal', 'good', 'high'];
+
+// tiny LCG — same sequence every load
+function rng(seed) { let s = seed; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; }
+
+function buildNights(l) {
+  const r = rng(l.seed);
+  return days.map((d, i) => {
+    const roll = r();
+    const unavail = roll > 0.93;
+    const dm = unavail ? 'unavail' : DEMAND[Math.floor(r() * 4)];
+    const base = 7000 + Math.floor(r() * 6000) + (d.we ? 1800 : 0);
+    return {
+      price: base,
+      minStay: 1 + (r() > 0.82 ? 1 : 0),
+      dm,
+      unavail,
+      wk: d.wk,
+      marks: {
+        booked:   r() > 0.86,
+        checkIn:  r() > 0.93,
+        event:    r() > 0.95,
+        restrict: r() > 0.96,
+        limit:    r() > 0.94,
+        multi:    r() > 0.95,
+      },
+      we: d.we,
+    };
+  });
+}
+LISTINGS.forEach(l => { l.nights = buildNights(l); });
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// live MC: >=10000 shows as K with up to 2 decimals and no trailing zeros
+// (10.23K, 13.5K, 12K); below that the raw integer (9923).
+const fmt = n => n >= 10000 ? (n / 1000).toFixed(2).replace(/\.?0+$/, '') + 'K' : String(n);
+
+function marksHTML(n) {
+  const m = [];
+  if (n.marks.booked)   m.push('<i class="fa-solid fa-bed m-bed" aria-hidden="true" title="Booked"></i>');
+  if (n.marks.checkIn)  m.push('<i class="fa-solid fa-key m-key" aria-hidden="true" title="Check in"></i>');
+  if (n.marks.event)    m.push('<i class="fa-solid fa-star m-event" aria-hidden="true" title="Event"></i>');
+  if (n.marks.restrict) m.push('<i class="fa-solid fa-house-lock m-restrict" aria-hidden="true" title="Check-in/out restricted"></i>');
+  if (n.marks.limit)    m.push('<i class="fa-solid fa-up-to-dotted-line m-limit" aria-hidden="true" title="Max price limit reached"></i>');
+  if (n.marks.multi)    m.push('<span class="m-multi" title="Multi-unit occupancy"></span>');
+  if (n.unavail)        m.push('<i class="fa-solid fa-triangle-exclamation m-unbook" aria-hidden="true" title="Unbookable"></i>');
+  return m.slice(0, 3).join('');
+}
+
+function metaCell(l, c) {
+  switch (c.key) {
+    case '_sel': return `<input type="checkbox" class="cb" aria-label="Select ${esc(l.name)}">`;
+    case 'name': return `<div class="lc">
+        <div class="lc-main">
+          <div class="lc-chan">${esc(l.chan)} <span>|</span> ${esc(l.id)}
+            <a class="lc-ext" href="#" aria-label="Open on channel"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+          </div>
+          <div class="lc-name">${esc(l.name)}</div>
+        </div>
+        <div class="lc-btns">
+          <button class="ibtn" aria-label="Listing options" title="Listing options"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
+          <button class="ibtn" aria-label="Add note" title="Add note"><i class="fa-regular fa-file-plus" aria-hidden="true"></i></button>
+        </div>
+      </div>`;
+    // read-only here; metaTitle() puts the "go to Manage Listings" hint on the cell
+    case 'alerts': return `<span class="muted">–</span>`;
+    // live MC: toggle + refresh share the top line; the timestamp sits beneath
+    case 'sync': return `<div class="sync-wrap">
+        <div class="sync-top">
+          <button class="switch ${l.sync ? 'on' : ''}" role="switch" aria-checked="${l.sync}" aria-label="Sync prices"></button>
+          <button class="sync-refresh" aria-label="Refresh prices" title="Refresh prices"><i class="fa-regular fa-arrows-rotate" aria-hidden="true"></i></button>
+        </div>
+        <span class="sync-meta">${esc(l.last)}${l.warn ? ' <i class="fa-solid fa-triangle-exclamation warn" aria-hidden="true"></i>' : ''}</span>
+      </div>`;
+    case 'save': return `<button class="btn-save">Save &amp; Refresh</button>`;
+    case 'base': return `<input class="cell-input" type="text" value="${esc(l.base)}" aria-label="Base price">`;
+    case 'occ7': return `<span class="occ">${esc(l.occ)}</span>`;
+    case 'tags': return l.tags ? esc(l.tags) : `<span class="muted">–</span>`;
+    case 'city': return esc(l.city);
+    case 'beds': return esc(l.beds);
+    case 'minp': return `<input class="cell-input" type="text" value="${esc(l.minp)}" aria-label="Minimum price">`;
+    default: return '';
+  }
+}
+
+function headCell(c) {
+  if (c.key === '_sel') return `<th ${cellAttrs(c, true)}><input type="checkbox" class="cb" aria-label="Select all listings"></th>`;
+  const dir = sort.key === c.key ? sort.dir : '';
+  return `<th ${cellAttrs(c, true)} id="mc-col-${c.key}"><div class="th-c">
+      <span class="th-lbl">${pinSide(c.key) ? '<i class="fa-solid fa-thumbtack th-pin" aria-hidden="true" title="Pinned"></i>' : ''}${esc(c.label)}</span>
+      <span class="th-tools">${c.sort
+        ? `<span class="sort-ico" data-dir="${dir || ''}"><i class="fa-solid fa-caret-up" aria-hidden="true"></i><i class="fa-solid fa-caret-down" aria-hidden="true"></i></span>`
+        : ''}<button class="th-menu" id="mc-colmenu-btn-${c.key}" data-menu="${c.key}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(c.label)} column menu"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></span>
+    </div></th>`;
+}
+
+function render() {
+  const lay = layout();
+  computePins(lay);
+  const before = [...lay.left, ...lay.mid];
+  const all = [...before, ...lay.right];
+
+  // right-pinned columns sit after the calendar so they stick to the right edge
+  $('#cg').innerHTML = before.map(c => `<col style="width:${c.w}px">`).join('')
+    + days.map(() => `<col style="width:60px">`).join('')
+    + lay.right.map(c => `<col style="width:${c.w}px">`).join('');
+
+  const total = all.reduce((n, c) => n + c.w, 0) + days.length * 60;
+  document.querySelector('table').style.width = total + 'px';
+
+  $('#head-row').innerHTML = before.map(headCell).join('')
+    + days.map(d => `<th class="day ${d.we ? 'we' : ''}">
+        <span class="day-d">${esc(d.label)}</span><span class="day-w">${esc(d.dow)}</span>
+      </th>`).join('')
+    + lay.right.map(headCell).join('');
+
+  const rows = sortedListings();
+  const td = (l, c) => `<td ${cellAttrs(c, false)}>${metaCell(l, c)}</td>`;
+  $('#body').innerHTML = rows.map(l => {
+    // a listing whose pricing could not be fetched shows one band instead of cells
+    const cal = l.noPricing
+      ? `<td class="pc-error" colspan="${days.length}">Unable to fetch pricing data — this listing has not been recently reviewed. Please try to click on Sync Now.</td>`
+      : l.nights.map(n => `<td class="pc dm-${n.dm} ${n.wk ? 'wk' : ''}">
+            <div class="pc-price">${n.unavail ? '<span class="muted">—</span>' : esc(fmt(n.price))}</div>
+            <div class="pc-meta">${n.minStay}<i class="fa-solid fa-moon" aria-hidden="true"></i></div>
+            <div class="pc-marks">${marksHTML(n)}</div>
+          </td>`).join('');
+    return `<tr>${before.map(c => td(l, c)).join('')}${cal}${lay.right.map(c => td(l, c)).join('')}</tr>`;
+  }).join('');
+
+  $('#foot-count').textContent = `Listings 1 to ${LISTINGS.length} of ${LISTINGS.length}`;
+
+  // keep every visibility control in step with the grid
+  document.querySelectorAll('#rc-menu input[data-col]').forEach(cb => { cb.checked = enabled.has(cb.dataset.col); });
+  if (typeof renderPanel === 'function') renderPanel();
+  syncScroll();
+}
+
+// .scrolled -> content is under the left pins; .more-r -> content is under the right pins
+function syncScroll() {
+  const w = $('#table-wrap');
+  w.classList.toggle('scrolled', w.scrollLeft > 0);
+  w.classList.toggle('more-r', w.scrollLeft + w.clientWidth < w.scrollWidth - 1);
+}
+$('#table-wrap').addEventListener('scroll', syncScroll);
+window.addEventListener('resize', syncScroll);
+
+document.addEventListener('click', e => {
+  const sw = e.target.closest('.switch');
+  if (sw) sw.classList.toggle('on');
+});
+
+render();
+
+// ---- Row/Column dropdown ----
+(() => {
+  const trg = document.getElementById('rc-trigger'), menu = document.getElementById('rc-menu');
+  const shut = () => { menu.classList.remove('open'); trg.setAttribute('aria-expanded', 'false'); };
+  trg.addEventListener('click', e => {
+    e.stopPropagation();
+    trg.setAttribute('aria-expanded', String(menu.classList.toggle('open')));
+  });
+  // ticking a box must not close the menu — you usually change several at once
+  menu.addEventListener('click', e => e.stopPropagation());
+  // only the wired rows actually toggle a column; the rest are illustrative
+  menu.addEventListener('change', e => {
+    const col = e.target.dataset && e.target.dataset.col;
+    if (!col) return;
+    if (e.target.checked) enabled.add(col); else enabled.delete(col);
+    render();
+  });
+  document.addEventListener('click', shut);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') shut(); });
+})();
+
+// ---------------------------------------------------------------------------
+// Column interactions, following MUI Data Grid (column-pinning / reordering /
+// columns management): a ⋮ menu on each header, drag-to-reorder among the
+// unpinned columns, and a Manage columns panel. Every touchpoint carries an
+// mc-colmenu-* / mc-cols-* id for usage tracking.
+// ---------------------------------------------------------------------------
+const colMenu = $('#col-menu'), colsPanel = $('#cols-panel');
+let menuKey = null, menuAnchor = null;
+
+function closeColMenu() {
+  colMenu.classList.remove('open');
+  document.querySelectorAll('.th-menu[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  menuKey = null;
+}
+function placeUnder(el, rect, w) {
+  el.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8)) + 'px';
+  el.style.top = (rect.bottom + 4) + 'px';
+}
+function openColMenu(key, btn) {
+  const c = byKey(key), side = pinSide(key);
+  const item = (act, icon, label, on) =>
+    `<button class="cm-item${on ? ' on' : ''}" role="menuitem" id="mc-colmenu-${act}" data-act="${act}"><i class="${icon}" aria-hidden="true"></i>${label}</button>`;
+  const groups = [];
+  if (c.sort) {
+    const cur = sort.key === key ? sort.dir : null;
+    groups.push([
+      item('sort-asc', 'fa-regular fa-arrow-up', 'Sort ascending', cur === 'asc'),
+      item('sort-desc', 'fa-regular fa-arrow-down', 'Sort descending', cur === 'desc'),
+      cur ? item('sort-clear', 'fa-regular fa-arrow-up-arrow-down', 'Unsort') : '',
+    ].join(''));
+  }
+  groups.push([
+    side !== 'left'  ? item('pin-left', 'fa-regular fa-arrow-left-to-line', 'Pin to left') : '',
+    side !== 'right' ? item('pin-right', 'fa-regular fa-arrow-right-to-line', 'Pin to right') : '',
+    side ? item('unpin', 'fa-regular fa-thumbtack-slash', 'Unpin') : '',
+  ].join(''));
+  groups.push([
+    c.hideable !== false ? item('hide', 'fa-regular fa-eye-slash', 'Hide column') : '',
+    item('manage', 'fa-regular fa-table-columns', 'Manage columns'),
+  ].join(''));
+  colMenu.innerHTML = groups.join('<div class="cm-sep" role="separator"></div>');
+  closePanel();
+  menuKey = key;
+  menuAnchor = btn.getBoundingClientRect();
+  btn.setAttribute('aria-expanded', 'true');
+  placeUnder(colMenu, menuAnchor, 200);
+  colMenu.classList.add('open');
+}
+
+function setPin(key, side) {
+  pins.left = pins.left.filter(k => k !== key);
+  pins.right = pins.right.filter(k => k !== key);
+  if (side) pins[side].push(key);
+}
+
+colMenu.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || !menuKey) return;
+  const key = menuKey, act = b.dataset.act, anchor = menuAnchor;
+  closeColMenu();
+  if (act === 'sort-asc' || act === 'sort-desc') Object.assign(sort, { key, dir: act.slice(5) });
+  else if (act === 'sort-clear') Object.assign(sort, { key: null, dir: null });
+  else if (act === 'pin-left') setPin(key, 'left');
+  else if (act === 'pin-right') setPin(key, 'right');
+  else if (act === 'unpin') setPin(key, null);
+  else if (act === 'hide') enabled.delete(key);
+  else if (act === 'manage') return openPanel(anchor);
+  render();
+});
+
+// ---- Manage columns panel ----
+function openPanel(rect) {
+  $('#cp-q').value = '';
+  placeUnder(colsPanel, rect || $('#head-row').getBoundingClientRect(), 260);
+  colsPanel.classList.add('open');
+  renderPanel();
+  $('#cp-q').focus();
+}
+function closePanel() { colsPanel.classList.remove('open'); }
+function panelCols() {
+  const q = $('#cp-q').value.trim().toLowerCase();
+  // listed in on-screen order: left pins, the rest, right pins (hidden ones included)
+  const keys = [...pins.left, ...order.filter(k => k !== '_sel' && !pinSide(k)), ...pins.right];
+  return keys.map(byKey).filter(c => c.label.toLowerCase().includes(q));
+}
+function renderPanel() {
+  if (!$('#cols-panel').classList.contains('open')) return;   // also called by the first render()
+  const focusId = document.activeElement && document.activeElement.id;
+  const cols = panelCols();
+  $('#cp-list').innerHTML = cols.length
+    ? cols.map(c => {
+        const locked = c.hideable === false;
+        return `<label class="rc-item cp-item${locked ? ' dis' : ''}"><input type="checkbox" class="cb-sm" id="mc-cols-${c.key}" data-vis="${c.key}"${enabled.has(c.key) ? ' checked' : ''}${locked ? ' disabled' : ''}><span class="lbl">${esc(c.label)}</span></label>`;
+      }).join('')
+    : '<div class="cp-empty">No columns</div>';
+  const hideable = cols.filter(c => c.hideable !== false);
+  const on = hideable.filter(c => enabled.has(c.key)).length;
+  const all = $('#mc-cols-all');
+  all.checked = hideable.length > 0 && on === hideable.length;
+  all.indeterminate = on > 0 && on < hideable.length;
+  all.disabled = !hideable.length;
+  $('#mc-cols-reset').disabled = enabled.size === DEFAULT_VIS.size && [...DEFAULT_VIS].every(k => enabled.has(k));
+  if (focusId && focusId.startsWith('mc-cols-') && document.getElementById(focusId)) document.getElementById(focusId).focus();
+}
+$('#cp-q').addEventListener('input', renderPanel);
+$('#cp-list').addEventListener('change', e => {
+  const k = e.target.dataset.vis;
+  if (!k) return;
+  if (e.target.checked) enabled.add(k); else enabled.delete(k);
+  render();
+});
+$('#mc-cols-all').addEventListener('change', e => {
+  // like MUI, Show/Hide All acts on the columns the search currently lists
+  panelCols().filter(c => c.hideable !== false).forEach(c => e.target.checked ? enabled.add(c.key) : enabled.delete(c.key));
+  render();
+});
+$('#mc-cols-reset').addEventListener('click', () => {
+  enabled.clear();
+  DEFAULT_VIS.forEach(k => enabled.add(k));
+  render();
+});
+
+// ---- header: ⋮ menu, click-to-sort, drag-to-reorder ----
+(() => {
+  const wrap = $('#table-wrap'), head = $('#head-row');
+  let drag = null;
+
+  const clearDrop = () => head.querySelectorAll('.drop-l, .drop-r').forEach(t => t.classList.remove('drop-l', 'drop-r'));
+  const endDrag = () => {
+    if (drag && drag.active) {
+      document.body.classList.remove('col-dragging');
+      drag.th.classList.remove('is-dragging');
+      clearDrop();
+    }
+    drag = null;
+  };
+  const cycleSort = key => {
+    if (sort.key !== key) Object.assign(sort, { key, dir: 'asc' });
+    else if (sort.dir === 'asc') sort.dir = 'desc';
+    else Object.assign(sort, { key: null, dir: null });
+    render();
+  };
+
+  head.addEventListener('click', e => {
+    const btn = e.target.closest('.th-menu');
+    if (!btn) return;
+    e.stopPropagation();
+    if (menuKey === btn.dataset.menu) closeColMenu(); else { closeColMenu(); openColMenu(btn.dataset.menu, btn); }
+  });
+
+  head.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const th = e.target.closest('th[data-key]');
+    if (!th || th.dataset.key === '_sel' || e.target.closest('.th-menu, input')) return;
+    e.preventDefault();   // no text selection while dragging
+    drag = { key: th.dataset.key, th, x0: e.clientX, active: false, target: null };
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.active) {
+      // pinned columns can't be dragged — unpin first (MUI rule)
+      if (!drag.th.classList.contains('drag-ok') || Math.abs(e.clientX - drag.x0) < 5) return;
+      drag.active = true;
+      drag.th.classList.add('is-dragging');
+      document.body.classList.add('col-dragging');
+      closeColMenu(); closePanel();
+    }
+    clearDrop();
+    drag.target = null;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const t = el && el.closest('#head-row th.drag-ok');
+    if (t) {
+      const r = t.getBoundingClientRect();
+      const after = e.clientX > r.left + r.width / 2;
+      const mid = layout().mid.map(c => c.key);
+      const from = mid.indexOf(drag.key), to = mid.indexOf(t.dataset.key) + (after ? 1 : 0);
+      if (to !== from && to !== from + 1) {           // skip drops that wouldn't move it
+        t.classList.add(after ? 'drop-r' : 'drop-l');
+        drag.target = { key: t.dataset.key, after };
+      }
+    }
+    // nudge the scroller when the pointer reaches either scrolling edge
+    const wr = wrap.getBoundingClientRect();
+    if (e.clientX > wr.right - 40) wrap.scrollLeft += 16;
+    else if (e.clientX < wr.left + pinnedLeftW + 40) wrap.scrollLeft -= 16;
+  });
+
+  document.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const d = drag;
+    if (!d.active) {
+      drag = null;
+      if (byKey(d.key).sort && e.target.closest && e.target.closest('th') === d.th) cycleSort(d.key);
+      return;
+    }
+    endDrag();
+    if (!d.target) return;
+    order.splice(order.indexOf(d.key), 1);
+    order.splice(order.indexOf(d.target.key) + (d.target.after ? 1 : 0), 0, d.key);
+    render();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    endDrag(); closeColMenu(); closePanel();
+  });
+  document.addEventListener('click', e => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (t && t.closest('#col-menu, #cols-panel, .th-menu')) return;
+    closeColMenu(); closePanel();
+  });
+  wrap.addEventListener('scroll', closeColMenu);
+  window.addEventListener('resize', () => { closeColMenu(); closePanel(); });
+})();
+
+// ---- Dynamic Pricing nav menu ----
+(() => {
+  const trg = document.getElementById('dp-trigger'), menu = document.getElementById('dp-menu');
+  if (!trg || !menu) return;
+
+  const shut = () => { menu.classList.remove('open'); trg.setAttribute('aria-expanded', 'false'); };
+  trg.addEventListener('click', e => {
+    e.stopPropagation();
+    trg.setAttribute('aria-expanded', String(menu.classList.toggle('open')));
+  });
+  document.addEventListener('click', e => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (t && (t.closest('#dp-menu') || t.closest('#dp-trigger'))) return;
+    shut();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') shut(); });
+})();
+
+
+// ---- Avatar menu (Settings & Preferences) — ported from control-panel ----
+(() => {
+  const trg = document.getElementById('av-trigger'), menu = document.getElementById('av-menu');
+  if (!trg || !menu) return;
+  const shut = () => { menu.classList.remove('open'); trg.setAttribute('aria-expanded', 'false'); };
+  trg.addEventListener('click', e => {
+    e.stopPropagation();
+    trg.setAttribute('aria-expanded', String(menu.classList.toggle('open')));
+  });
+  const sw = document.getElementById('av-dark');
+  if (sw) sw.addEventListener('click', () => {
+    const on = sw.classList.toggle('on');
+    sw.setAttribute('aria-checked', String(on));
+    sw.closest('[role="menuitemcheckbox"]').setAttribute('aria-checked', String(on));
+  });
+  document.addEventListener('click', e => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (t && (t.closest('#av-menu') || t.closest('#av-trigger'))) return;
+    shut();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') shut(); });
+})();
+</script>
+</body>
+</html>
