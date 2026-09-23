@@ -261,16 +261,15 @@
 
   /* ---------------- Column pinning (MUI Data Grid model) ----------------
      Defaults match live MC: only the checkbox and Listings are pinned left.
-     Any meta column can be pinned left or right from its header menu; offsets
-     are set inline by render(). Each pinned block is closed by the dark rule,
-     plus a shadow while content is scrolled underneath it. */
-  th.pin-l, td.pin-l, th.pin-r, td.pin-r { position: sticky; z-index: 2; }
-  thead th.pin-l, thead th.pin-r { z-index: 5; }
+     Any meta column can be pinned from its header menu; pins always stack on
+     the left, in the order they were pinned. Offsets are set inline by render().
+     The pinned block is closed by the dark rule, plus a shadow while content is
+     scrolled underneath it. */
+  th.pin-l, td.pin-l { position: sticky; z-index: 2; }
+  thead th.pin-l { z-index: 5; }
   th.sel, td.sel { width: 40px; padding: 0; text-align: center; }
   th.pin-edge-l, td.pin-edge-l { box-shadow: inset -1px 0 0 var(--grid); }
   .table-wrap.scrolled th.pin-edge-l, .table-wrap.scrolled td.pin-edge-l { box-shadow: inset -1px 0 0 var(--grid), 4px 0 4px -2px rgba(0,0,0,.1); }
-  th.pin-edge-r, td.pin-edge-r { box-shadow: inset 1px 0 0 var(--grid); }
-  .table-wrap.more-r th.pin-edge-r, .table-wrap.more-r td.pin-edge-r { box-shadow: inset 1px 0 0 var(--grid), -4px 0 4px -2px rgba(0,0,0,.1); }
 
   /* header tools: sort carets + the MUI-style ⋮ column menu, shown on hover */
   .th-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -769,30 +768,29 @@ const byKey = k => META.find(c => c.key === k);
 // Column state, modelled on MUI Data Grid:
 //  - `order` is the column order; pinning never rewrites it, so unpinning a
 //    column sends it back to where it sat in the order.
-//  - `pins` holds the left/right pinned sets, in the order they were pinned.
-//    The selection checkbox is always the first left-pinned column.
+//  - `pins` holds the pinned columns, in the order they were pinned. Pins
+//    always stack on the left; the selection checkbox is always first.
 //  - `enabled` is column visibility; Reset returns it to DEFAULT_VIS.
 // ---------------------------------------------------------------------------
 const DEFAULT_VIS = new Set(META.filter(c => !c.hidden).map(c => c.key));
 const enabled = new Set(DEFAULT_VIS);
 const order = META.map(c => c.key);
-const pins = { left: ['name'], right: [] };
+let pins = ['name'];
 const sort = { key: null, dir: null };
-const pinSide = k => (k === '_sel' || pins.left.includes(k)) ? 'left' : pins.right.includes(k) ? 'right' : null;
+const isPinned = k => k === '_sel' || pins.includes(k);
 
 function layout() {
   const vis = k => enabled.has(k);
   return {
-    left:  ['_sel', ...pins.left].filter(vis).map(byKey),
-    mid:   order.filter(k => !pinSide(k) && vis(k)).map(byKey),
-    right: pins.right.filter(vis).map(byKey),
+    left: ['_sel', ...pins].filter(vis).map(byKey),
+    mid:  order.filter(k => !isPinned(k) && vis(k)).map(byKey),
   };
 }
 
 // sticky class + inline offset per pinned column, rebuilt on every render
 let pinPos = {};
 let pinnedLeftW = 0;
-function computePins({ left, right }) {
+function computePins({ left }) {
   pinPos = {};
   let x = 0;
   left.forEach((c, i) => {
@@ -800,11 +798,6 @@ function computePins({ left, right }) {
     x += c.w;
   });
   pinnedLeftW = x;
-  let r = 0;
-  [...right].reverse().forEach((c, i) => {
-    pinPos[c.key] = { cls: 'pin-r' + (i === right.length - 1 ? ' pin-edge-r' : ''), style: `right:${r}px` };
-    r += c.w;
-  });
 }
 function cellAttrs(c, isHead) {
   const p = pinPos[c.key];
@@ -939,7 +932,7 @@ function headCell(c) {
   if (c.key === '_sel') return `<th ${cellAttrs(c, true)}><input type="checkbox" class="cb" aria-label="Select all listings"></th>`;
   const dir = sort.key === c.key ? sort.dir : '';
   return `<th ${cellAttrs(c, true)} id="mc-col-${c.key}"><div class="th-c">
-      <span class="th-lbl">${pinSide(c.key) ? '<i class="fa-solid fa-thumbtack th-pin" aria-hidden="true" title="Pinned"></i>' : ''}${esc(c.label)}</span>
+      <span class="th-lbl">${isPinned(c.key) ? '<i class="fa-solid fa-thumbtack th-pin" aria-hidden="true" title="Pinned"></i>' : ''}${esc(c.label)}</span>
       <span class="th-tools">${c.sort
         ? `<span class="sort-ico" data-dir="${dir || ''}"><i class="fa-solid fa-caret-up" aria-hidden="true"></i><i class="fa-solid fa-caret-down" aria-hidden="true"></i></span>`
         : ''}<button class="th-menu" id="mc-colmenu-btn-${c.key}" data-menu="${c.key}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(c.label)} column menu"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></span>
@@ -950,21 +943,17 @@ function render() {
   const lay = layout();
   computePins(lay);
   const before = [...lay.left, ...lay.mid];
-  const all = [...before, ...lay.right];
 
-  // right-pinned columns sit after the calendar so they stick to the right edge
   $('#cg').innerHTML = before.map(c => `<col style="width:${c.w}px">`).join('')
-    + days.map(() => `<col style="width:60px">`).join('')
-    + lay.right.map(c => `<col style="width:${c.w}px">`).join('');
+    + days.map(() => `<col style="width:60px">`).join('');
 
-  const total = all.reduce((n, c) => n + c.w, 0) + days.length * 60;
+  const total = before.reduce((n, c) => n + c.w, 0) + days.length * 60;
   document.querySelector('table').style.width = total + 'px';
 
   $('#head-row').innerHTML = before.map(headCell).join('')
     + days.map(d => `<th class="day ${d.we ? 'we' : ''}">
         <span class="day-d">${esc(d.label)}</span><span class="day-w">${esc(d.dow)}</span>
-      </th>`).join('')
-    + lay.right.map(headCell).join('');
+      </th>`).join('');
 
   const rows = sortedListings();
   const td = (l, c) => `<td ${cellAttrs(c, false)}>${metaCell(l, c)}</td>`;
@@ -977,7 +966,7 @@ function render() {
             <div class="pc-meta">${n.minStay}<i class="fa-solid fa-moon" aria-hidden="true"></i></div>
             <div class="pc-marks">${marksHTML(n)}</div>
           </td>`).join('');
-    return `<tr>${before.map(c => td(l, c)).join('')}${cal}${lay.right.map(c => td(l, c)).join('')}</tr>`;
+    return `<tr>${before.map(c => td(l, c)).join('')}${cal}</tr>`;
   }).join('');
 
   $('#foot-count').textContent = `Listings 1 to ${LISTINGS.length} of ${LISTINGS.length}`;
@@ -988,11 +977,10 @@ function render() {
   syncScroll();
 }
 
-// .scrolled -> content is under the left pins; .more-r -> content is under the right pins
+// .scrolled -> content is under the pinned block
 function syncScroll() {
   const w = $('#table-wrap');
   w.classList.toggle('scrolled', w.scrollLeft > 0);
-  w.classList.toggle('more-r', w.scrollLeft + w.clientWidth < w.scrollWidth - 1);
 }
 $('#table-wrap').addEventListener('scroll', syncScroll);
 window.addEventListener('resize', syncScroll);
@@ -1044,7 +1032,7 @@ function placeUnder(el, rect, w) {
   el.style.top = (rect.bottom + 4) + 'px';
 }
 function openColMenu(key, btn) {
-  const c = byKey(key), side = pinSide(key);
+  const c = byKey(key), pinned = isPinned(key);
   const item = (act, icon, label, on) =>
     `<button class="cm-item${on ? ' on' : ''}" role="menuitem" id="mc-colmenu-${act}" data-act="${act}"><i class="${icon}" aria-hidden="true"></i>${label}</button>`;
   const groups = [];
@@ -1057,9 +1045,8 @@ function openColMenu(key, btn) {
     ].join(''));
   }
   groups.push([
-    side !== 'left'  ? item('pin-left', 'fa-regular fa-arrow-left-to-line', 'Pin to left') : '',
-    side !== 'right' ? item('pin-right', 'fa-regular fa-arrow-right-to-line', 'Pin to right') : '',
-    side ? item('unpin', 'fa-regular fa-thumbtack-slash', 'Unpin') : '',
+    pinned ? item('unpin', 'fa-regular fa-thumbtack-slash', 'Unpin')
+           : item('pin', 'fa-regular fa-thumbtack', 'Pin column'),
   ].join(''));
   groups.push([
     c.hideable !== false ? item('hide', 'fa-regular fa-eye-slash', 'Hide column') : '',
@@ -1074,10 +1061,9 @@ function openColMenu(key, btn) {
   colMenu.classList.add('open');
 }
 
-function setPin(key, side) {
-  pins.left = pins.left.filter(k => k !== key);
-  pins.right = pins.right.filter(k => k !== key);
-  if (side) pins[side].push(key);
+function setPin(key, on) {
+  pins = pins.filter(k => k !== key);
+  if (on) pins.push(key);
 }
 
 colMenu.addEventListener('click', e => {
@@ -1087,9 +1073,8 @@ colMenu.addEventListener('click', e => {
   closeColMenu();
   if (act === 'sort-asc' || act === 'sort-desc') Object.assign(sort, { key, dir: act.slice(5) });
   else if (act === 'sort-clear') Object.assign(sort, { key: null, dir: null });
-  else if (act === 'pin-left') setPin(key, 'left');
-  else if (act === 'pin-right') setPin(key, 'right');
-  else if (act === 'unpin') setPin(key, null);
+  else if (act === 'pin') setPin(key, true);
+  else if (act === 'unpin') setPin(key, false);
   else if (act === 'hide') enabled.delete(key);
   else if (act === 'manage') return openPanel(anchor);
   render();
@@ -1106,8 +1091,8 @@ function openPanel(rect) {
 function closePanel() { colsPanel.classList.remove('open'); }
 function panelCols() {
   const q = $('#cp-q').value.trim().toLowerCase();
-  // listed in on-screen order: left pins, the rest, right pins (hidden ones included)
-  const keys = [...pins.left, ...order.filter(k => k !== '_sel' && !pinSide(k)), ...pins.right];
+  // listed in on-screen order: pins, then the rest (hidden ones included)
+  const keys = [...pins, ...order.filter(k => !isPinned(k))];
   return keys.map(byKey).filter(c => c.label.toLowerCase().includes(q));
 }
 function renderPanel() {
