@@ -275,9 +275,6 @@
   .th-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .th-pin { font-size: 9px; color: var(--ink-2); margin-right: 5px; }
   .th-tools { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-  .sort-ico[data-dir="asc"] .svg-inline--fa:last-child,
-  .sort-ico[data-dir="desc"] .svg-inline--fa:first-child { opacity: .3; }
-  .sort-ico[data-dir="asc"], .sort-ico[data-dir="desc"] { color: var(--ink); }
   /* like MUI, the button takes no room until the header is hovered */
   .th-menu {
     width: 0; height: 20px; display: grid; place-items: center; padding: 0; overflow: hidden;
@@ -930,12 +927,10 @@ function metaCell(l, c) {
 
 function headCell(c) {
   if (c.key === '_sel') return `<th ${cellAttrs(c, true)}><input type="checkbox" class="cb" aria-label="Select all listings"></th>`;
-  const dir = sort.key === c.key ? sort.dir : '';
+  // sorting lives in the ⋮ menu only — no carets in the header
   return `<th ${cellAttrs(c, true)} id="mc-col-${c.key}"><div class="th-c">
       <span class="th-lbl">${isPinned(c.key) ? '<i class="fa-solid fa-thumbtack th-pin" aria-hidden="true" title="Pinned"></i>' : ''}${esc(c.label)}</span>
-      <span class="th-tools">${c.sort
-        ? `<span class="sort-ico" data-dir="${dir || ''}"><i class="fa-solid fa-caret-up" aria-hidden="true"></i><i class="fa-solid fa-caret-down" aria-hidden="true"></i></span>`
-        : ''}<button class="th-menu" id="mc-colmenu-btn-${c.key}" data-menu="${c.key}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(c.label)} column menu"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></span>
+      <span class="th-tools"><button class="th-menu" id="mc-colmenu-btn-${c.key}" data-menu="${c.key}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(c.label)} column menu"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></span>
     </div></th>`;
 }
 
@@ -1132,7 +1127,7 @@ $('#mc-cols-reset').addEventListener('click', () => {
   render();
 });
 
-// ---- header: ⋮ menu, click-to-sort, drag-to-reorder ----
+// ---- header: ⋮ menu, drag-to-reorder ----
 (() => {
   const wrap = $('#table-wrap'), head = $('#head-row');
   let drag = null;
@@ -1146,13 +1141,6 @@ $('#mc-cols-reset').addEventListener('click', () => {
     }
     drag = null;
   };
-  const cycleSort = key => {
-    if (sort.key !== key) Object.assign(sort, { key, dir: 'asc' });
-    else if (sort.dir === 'asc') sort.dir = 'desc';
-    else Object.assign(sort, { key: null, dir: null });
-    render();
-  };
-
   head.addEventListener('click', e => {
     const btn = e.target.closest('.th-menu');
     if (!btn) return;
@@ -1201,11 +1189,7 @@ $('#mc-cols-reset').addEventListener('click', () => {
   document.addEventListener('pointerup', e => {
     if (!drag) return;
     const d = drag;
-    if (!d.active) {
-      drag = null;
-      if (byKey(d.key).sort && e.target.closest && e.target.closest('th') === d.th) cycleSort(d.key);
-      return;
-    }
+    if (!d.active) { drag = null; return; }
     endDrag();
     if (!d.target) return;
     order.splice(order.indexOf(d.key), 1);
